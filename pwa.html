@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080810">
+<title>SafeOut</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--bg2:#0f0f1a;--bg3:#141420;--bg4:#1a1a28;
+  --burg:#7D2545;--burg-dim:rgba(125,37,69,0.12);--burg-border:rgba(125,37,69,0.28);
+  --blue:#7b8fff;--blue-dim:rgba(123,143,255,0.10);--blue-border:rgba(123,143,255,0.22);
+  --teal:#4ecfaa;--teal-dim:rgba(78,207,170,0.09);--teal-border:rgba(78,207,170,0.20);
+  --red:#ff6b6b;--red-dim:rgba(255,107,107,0.10);--red-border:rgba(255,107,107,0.22);
+  --gray-dim:rgba(255,255,255,0.04);--gray-border:rgba(255,255,255,0.08);
+  --text:rgba(255,255,255,0.92);--text2:rgba(255,255,255,0.45);--text3:rgba(255,255,255,0.20);
+  --r:18px;--r-sm:12px;
+}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(125,37,69,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+/* ── PHONE SHELL ── */
+.shell{position:relative;z-index:1;width:min(100vw,390px);height:min(100vh,820px);margin:auto;background:var(--bg2);border-radius:clamp(0px,4vw,40px);border:1.5px solid rgba(255,255,255,0.07);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(0,0,0,0.5),0 40px 80px rgba(0,0,0,0.5)}
+.status{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 6px;flex-shrink:0}
+.status-time{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.04em}
+.status-icons{display:flex;gap:5px;align-items:center}
+.status-icons svg{width:13px;height:13px;fill:var(--text3)}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:relative}
+.screen.active{display:flex}
+
+/* ══ MAIN ══ */
+.main-header{padding:16px 22px 14px;flex-shrink:0}
+.logo-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.logo-mark{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--burg);letter-spacing:-.02em;line-height:1}
+.logo-sep{width:1px;height:18px;background:rgba(255,255,255,0.1)}
+.logo-name{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--text3);text-transform:uppercase}
+.main-title{font-family:'Syne',sans-serif;font-size:21px;font-weight:700;color:var(--text);line-height:1.15;margin-bottom:4px}
+.main-sub{font-size:12px;color:var(--text2);font-weight:300}
+
+.btn-list{flex:1;padding:0 14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.btn-list::-webkit-scrollbar{display:none}
+
+.action-btn{width:100%;background:none;border:none;cursor:pointer;padding:0;border-radius:var(--r);transition:transform .12s ease;text-align:left;-webkit-tap-highlight-color:transparent}
+.action-btn:active{transform:scale(.975)}
+.btn-inner{border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:13px;border:1px solid;transition:border-color .15s,background .15s}
+.btn-inner.blue{background:var(--blue-dim);border-color:var(--blue-border)}
+.btn-inner.teal{background:var(--teal-dim);border-color:var(--teal-border)}
+.btn-inner.red{background:var(--red-dim);border-color:var(--red-border)}
+.btn-inner.gray{background:var(--gray-dim);border-color:var(--gray-border)}
+.action-btn:hover .btn-inner.blue{border-color:rgba(123,143,255,.38)}
+.action-btn:hover .btn-inner.teal{border-color:rgba(78,207,170,.36)}
+.action-btn:hover .btn-inner.red{border-color:rgba(255,107,107,.38)}
+.action-btn:hover .btn-inner.gray{border-color:rgba(255,255,255,.14)}
+
+.btn-icon{width:42px;height:42px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-icon svg{width:20px;height:20px;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.btn-icon.blue{background:rgba(123,143,255,.14)}
+.btn-icon.teal{background:rgba(78,207,170,.12)}
+.btn-icon.red{background:rgba(255,107,107,.12)}
+.btn-icon.gray{background:rgba(255,255,255,.06)}
+
+.btn-body{flex:1}
+.btn-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.03em;display:block;margin-bottom:2px}
+.btn-label.blue{color:#a0aaff}
+.btn-label.teal{color:#4ecfaa}
+.btn-label.red{color:#ff8080}
+.btn-label.gray{color:rgba(255,255,255,.48)}
+.btn-desc{font-size:11px;font-weight:300;line-height:1.4}
+.btn-desc.blue{color:rgba(160,170,255,.55)}
+.btn-desc.teal{color:rgba(78,207,170,.50)}
+.btn-desc.red{color:rgba(255,128,128,.50)}
+.btn-desc.gray{color:rgba(255,255,255,.25)}
+.btn-arrow{font-size:18px;color:rgba(255,255,255,.16);flex-shrink:0}
+
+.divider{display:flex;align-items:center;gap:10px;padding:2px 4px}
+.divider-line{flex:1;height:1px;background:rgba(255,255,255,.05)}
+.divider-text{font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase}
+
+.footer-status{padding:12px 22px 18px;display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+.footer-text{font-size:10px;color:var(--text3);letter-spacing:.06em}
+
+/* ══ CONFIRM ══ */
+#screen-confirm{align-items:center;justify-content:center;padding:32px 28px;text-align:center}
+.confirm-icon-wrap{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1.5px solid}
+.confirm-icon-wrap svg{width:34px;height:34px;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.confirm-icon-wrap.blue{background:var(--blue-dim);border-color:var(--blue-border)}
+.confirm-icon-wrap.teal{background:var(--teal-dim);border-color:var(--teal-border)}
+.confirm-icon-wrap.red{background:var(--red-dim);border-color:var(--red-border)}
+.confirm-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:10px;line-height:1.2}
+.confirm-sub{font-size:13px;font-weight:300;color:var(--text2);line-height:1.65;margin-bottom:28px;max-width:260px}
+.confirm-meta{width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:24px;text-align:left}
+.meta-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+.meta-row+.meta-row{border-top:1px solid rgba(255,255,255,.04)}
+.meta-key{font-size:11px;color:var(--text3)}
+.meta-val{font-size:11px;color:var(--text2);font-weight:500}
+.meta-val.live{color:var(--teal);display:flex;align-items:center;gap:5px}
+.meta-val.live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;animation:pulse 1.8s ease infinite}
+.back-btn{background:none;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text2);cursor:pointer;transition:border-color .15s,color .15s}
+.back-btn:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
+
+/* ══ CONTACT SHEET ══ */
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;align-items:flex-end}
+.sheet-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;background:#12121e;border-top:1px solid rgba(255,255,255,.08);border-radius:24px 24px 0 0;padding-bottom:32px;animation:slideUp .25s cubic-bezier(.25,.46,.45,.94)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:rgba(255,255,255,.11);border-radius:2px;margin:14px auto 16px}
+.sheet-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;padding:0 20px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.contact-list{padding:8px 0}
+.contact-item{display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:background .12s;-webkit-tap-highlight-color:transparent}
+.contact-item:hover{background:rgba(255,255,255,.03)}
+.contact-item:active{background:rgba(255,255,255,.06)}
+.avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;flex-shrink:0}
+.av-a{background:rgba(255,130,160,.13);color:#ff82a0}
+.av-b{background:rgba(123,143,255,.13);color:#7b8fff}
+.av-c{background:rgba(255,190,80,.13);color:#ffbe50}
+.av-d{background:rgba(78,207,170,.13);color:#4ecfaa}
+.contact-info{flex:1}
+.contact-name{font-size:14px;font-weight:500;color:var(--text);display:block;margin-bottom:2px}
+.contact-role{font-size:11px;color:var(--text2);font-weight:300}
+.send-btn{width:34px;height:34px;border-radius:50%;background:var(--teal-dim);border:1px solid var(--teal-border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.send-btn svg{width:14px;height:14px;stroke:var(--teal);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ══ INFO SCREEN ══ */
+#screen-info{overflow:hidden}
+.info-header{padding:14px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.icon-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);flex-shrink:0;transition:background .12s;font-size:15px;font-family:'DM Sans',sans-serif}
+.icon-btn:hover{background:rgba(255,255,255,.09)}
+.info-title-wrap{flex:1}
+.info-h{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.info-sub{font-size:10px;color:var(--text3);letter-spacing:.06em}
+.info-scroll{flex:1;overflow-y:auto;padding:14px 18px 20px}
+.info-scroll::-webkit-scrollbar{display:none}
+.info-section{margin-bottom:20px}
+.section-label{font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-bottom:9px;padding-left:2px}
+.who-card{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);padding:16px}
+.who-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px}
+.who-p{font-size:12px;font-weight:300;color:var(--text2);line-height:1.7;margin-bottom:8px}
+.who-p:last-child{margin-bottom:0}
+.btn-card{background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);overflow:hidden;margin-bottom:7px}
+.btn-card-head{padding:11px 14px 9px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.04)}
+.btn-card-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-card-ico svg{width:14px;height:14px;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.btn-card-ico.blue{background:var(--blue-dim)}
+.btn-card-ico.teal{background:var(--teal-dim)}
+.btn-card-ico.red{background:var(--red-dim)}
+.btn-card-name{font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:.03em}
+.btn-card-name.blue{color:#a0aaff}
+.btn-card-name.teal{color:var(--teal)}
+.btn-card-name.red{color:var(--red)}
+.btn-card-body{padding:10px 14px 11px;font-size:11px;font-weight:300;color:var(--text2);line-height:1.65}
+.hotline-list{display:flex;flex-direction:column;gap:6px}
+.hotline-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);padding:11px 14px}
+.hotline-name{font-size:12px;font-weight:500;color:var(--text)}
+.hotline-note{font-size:10px;color:var(--text3);margin-top:1px}
+.hotline-num{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal)}
+.privacy-box{background:rgba(123,143,255,.05);border:1px solid rgba(123,143,255,.13);border-radius:var(--r-sm);padding:12px 14px;display:flex;gap:10px}
+.privacy-ico svg{width:14px;height:14px;stroke:#a0aaff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:1px}
+.privacy-txt{font-size:11px;font-weight:300;color:rgba(160,170,255,.6);line-height:1.6}
+
+/* ══ DISGUISE ══ */
+#screen-disguise{align-items:center;justify-content:center;background:var(--bg)}
+.disguise-inner{text-align:center;padding:40px 32px}
+.disguise-icon{font-size:40px;margin-bottom:16px}
+.disguise-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.3);margin-bottom:8px}
+.disguise-sub{font-size:12px;color:rgba(255,255,255,.15);font-weight:300;line-height:1.6;margin-bottom:32px}
+.disguise-back{font-size:10px;color:rgba(255,255,255,.1);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="status">
+    <span class="status-time" id="statusTime">22:14</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="4" height="11" rx="1"/><rect x="9" y="4" width="4" height="14" rx="1"/><rect x="16" y="1" width="4" height="17" rx="1"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="12" rx="2"/><path d="M22 11v4"/></svg>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="screen active" id="screen-main">
+    <div class="main-header">
+      <div class="logo-row">
+        <div class="logo-mark">SO</div>
+        <div class="logo-sep"></div>
+        <div class="logo-name">SafeOut</div>
+      </div>
+      <h1 class="main-title">Do you need<br>help right now?</h1>
+      <p class="main-sub">Tap a button. We're here.</p>
+    </div>
+    <div class="btn-list">
+      <button class="action-btn" onclick="showConfirm('escort')" aria-label="Get me out">
+        <div class="btn-inner blue">
+          <div class="btn-icon blue">
+            <svg viewBox="0 0 24 24" stroke="#a0aaff"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </div>
+          <div class="btn-body">
+            <span class="btn-label blue">Get me out</span>
+            <span class="btn-desc blue">Staff will escort you safely to the exit</span>
+          </div>
+          <span class="btn-arrow">›</span>
+        </div>
+      </button>
+      <button class="action-btn" onclick="openSheet()" aria-label="Call somebody">
+        <div class="btn-inner teal">
+          <div class="btn-icon teal">
+            <svg viewBox="0 0 24 24" stroke="#4ecfaa"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div class="btn-body">
+            <span class="btn-label teal">Call somebody</span>
+            <span class="btn-desc teal">Alert a trusted contact with your location</span>
+          </div>
+          <span class="btn-arrow">›</span>
+        </div>
+      </button>
+      <div class="divider"><div class="divider-line"></div><span class="divider-text">emergency</span><div class="divider-line"></div></div>
+      <button class="action-btn" onclick="showConfirm('112')" aria-label="Emergency 112">
+        <div class="btn-inner red">
+          <div class="btn-icon red">
+            <svg viewBox="0 0 24 24" stroke="#ff8080"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="btn-body">
+            <span class="btn-label red">112 — I'm in danger</span>
+            <span class="btn-desc red">Location + metadata sent to authorities</span>
+          </div>
+          <span class="btn-arrow">›</span>
+        </div>
+      </button>
+      <button class="action-btn" onclick="showInfo()" aria-label="About SafeOut">
+        <div class="btn-inner gray">
+          <div class="btn-icon gray">
+            <svg viewBox="0 0 24 24" stroke="rgba(255,255,255,0.38)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <div class="btn-body">
+            <span class="btn-label gray">About SafeOut</span>
+            <span class="btn-desc gray">Who we are · how each button works</span>
+          </div>
+          <span class="btn-arrow">›</span>
+        </div>
+      </button>
+    </div>
+    <div class="footer-status">
+      <div class="pulse-dot"></div>
+      <span class="footer-text">dispatch active · confidential</span>
+    </div>
+  </div>
+
+  <!-- CONFIRM -->
+  <div class="screen" id="screen-confirm">
+    <div class="confirm-icon-wrap teal" id="confirmIcon">
+      <svg id="confirmSvg" viewBox="0 0 24 24" stroke="#4ecfaa"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2 class="confirm-title" id="confirmTitle">Help is on the way</h2>
+    <p class="confirm-sub" id="confirmSub">Stay where you are if it's safe.</p>
+    <div class="confirm-meta">
+      <div class="meta-row"><span class="meta-key">Location</span><span class="meta-val live" id="metaLoc">Acquiring</span></div>
+      <div class="meta-row"><span class="meta-key">Venue ID</span><span class="meta-val" id="metaVenue">—</span></div>
+      <div class="meta-row"><span class="meta-key">Time</span><span class="meta-val" id="metaTime">—</span></div>
+      <div class="meta-row"><span class="meta-key">Dispatch</span><span class="meta-val live">Connected</span></div>
+    </div>
+    <button class="back-btn" onclick="goBack()">← Back</button>
+  </div>
+
+  <!-- INFO -->
+  <div class="screen" id="screen-info">
+    <div class="info-header">
+      <button class="icon-btn" onclick="goBack()">←</button>
+      <div class="info-title-wrap">
+        <div class="info-h">About SafeOut</div>
+        <div class="info-sub">WHO WE ARE · HOW IT WORKS</div>
+      </div>
+    </div>
+    <div class="info-scroll">
+      <div class="info-section">
+        <div class="section-label">Who we are</div>
+        <div class="who-card">
+          <div class="who-title">SafeOut</div>
+          <p class="who-p">SafeOut is a free safety tool available wherever it's needed — public spaces, transport hubs, hotels, events, or anywhere people may be vulnerable. Our first priority is combating human trafficking.</p>
+          <p class="who-p">We place QR codes in accessible locations. Anyone who feels unsafe can scan and reach help instantly — no app, no account, no sign-up required.</p>
+          <p class="who-p">Every alert is received by a real, trained person. We work with NGOs, volunteers, and authorities to make sure no scan goes unanswered.</p>
+        </div>
+      </div>
+      <div class="info-section">
+        <div class="section-label">How each button works</div>
+        <div class="btn-card">
+          <div class="btn-card-head">
+            <div class="btn-card-ico blue"><svg viewBox="0 0 24 24" stroke="#a0aaff"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
+            <span class="btn-card-name blue">Get me out</span>
+          </div>
+          <div class="btn-card-body">Alerts trained staff that someone needs a discreet exit. A person will come to you, use a code phrase, and escort you safely out — no questions asked.</div>
+        </div>
+        <div class="btn-card">
+          <div class="btn-card-head">
+            <div class="btn-card-ico teal"><svg viewBox="0 0 24 24" stroke="#4ecfaa"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+            <span class="btn-card-name teal">Call somebody</span>
+          </div>
+          <div class="btn-card-body">Sends an automatic alert with your location to a trusted contact. They receive a message that you need them to call you immediately.</div>
+        </div>
+        <div class="btn-card">
+          <div class="btn-card-head">
+            <div class="btn-card-ico red"><svg viewBox="0 0 24 24" stroke="#ff8080"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <span class="btn-card-name red">112 — I'm in danger</span>
+          </div>
+          <div class="btn-card-body">Sends your GPS location, venue ID, and timestamped metadata to emergency services and our dispatch center simultaneously. Use when in immediate danger or if you suspect human trafficking.</div>
+        </div>
+      </div>
+      <div class="info-section">
+        <div class="section-label">Emergency hotlines</div>
+        <div class="hotline-list">
+          <div class="hotline-row"><div><div class="hotline-name">Emergency</div><div class="hotline-note">Police · ambulance · fire</div></div><div class="hotline-num">112</div></div>
+          <div class="hotline-row"><div><div class="hotline-name">ANITP Anti-trafficking</div><div class="hotline-note">Free · 24/7 · confidential</div></div><div class="hotline-num">0800 800 678</div></div>
+          <div class="hotline-row"><div><div class="hotline-name">Domestic violence</div><div class="hotline-note">Free · 24/7</div></div><div class="hotline-num">0800 500 333</div></div>
+        </div>
+      </div>
+      <div class="info-section">
+        <div class="privacy-box">
+          <div class="privacy-ico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <span class="privacy-txt">Your data is encrypted and only accessible to trained dispatch personnel. No personal data is stored without your consent. SafeOut does not share data with third parties.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISGUISE -->
+  <div class="screen" id="screen-disguise">
+    <div class="disguise-inner">
+      <div class="disguise-icon">🔧</div>
+      <div class="disguise-title">Site under maintenance</div>
+      <div class="disguise-sub">We're working on some improvements.<br>Please check back soon.</div>
+      <button class="disguise-back" onclick="goBack()">← go back</button>
+    </div>
+  </div>
+
+  <!-- CONTACT SHEET -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheetOutside(event)">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Choose a contact to alert</div>
+      <div class="contact-list">
+        <button class="contact-item" onclick="sendToContact('Maria')"><div class="avatar av-a">MA</div><div class="contact-info"><span class="contact-name">Maria Andrei</span><span class="contact-role">Best friend</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
+        <button class="contact-item" onclick="sendToContact('Alex')"><div class="avatar av-b">AV</div><div class="contact-info"><span class="contact-name">Alex Vasile</span><span class="contact-role">Boyfriend</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
+        <button class="contact-item" onclick="sendToContact('Mom')"><div class="avatar av-c">IO</div><div class="contact-info"><span class="contact-name">Ioana Oprea</span><span class="contact-role">Mom</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
+        <button class="contact-item" onclick="sendToContact('Sara')"><div class="avatar av-d">SN</div><div class="contact-info"><span class="contact-name">Sara Nistor</span><span class="contact-role">Roommate</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── API CONFIG — schimba BASE_URL cand ai backend-ul real ──
+const API_BASE = ''; // ex: 'https://api.safeout.ro'
+const QR_ID = new URLSearchParams(window.location.search).get('q') || 'demo';
+
+// ── Clock ──
+function updateClock(){
+  const now = new Date();
+  document.getElementById('statusTime').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 30000);
+
+// ── Screen nav ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goBack(){ showScreen('screen-main'); clearCache(); }
+function showInfo(){ showScreen('screen-info'); }
+
+// ── Disguise — double-tap logo ──
+let tapCount=0, tapTimer;
+document.querySelector('.logo-mark').addEventListener('click',()=>{
+  tapCount++;
+  clearTimeout(tapTimer);
+  if(tapCount>=2){ showScreen('screen-disguise'); tapCount=0; }
+  else tapTimer=setTimeout(()=>tapCount=0, 500);
+});
+
+// ── Geolocation ──
+function getLocation(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation) return resolve({lat:null,lng:null,accuracy:null,method:'unavailable'});
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,method:p.coords.accuracy<50?'gps':'wifi'}),
+      ()=>resolve({lat:null,lng:null,accuracy:null,method:'unavailable'}),
+      {enableHighAccuracy:true,timeout:5000,maximumAge:0}
+    );
+  });
+}
+
+// ── Send incident — conecteaza la POST /incidents cand e gata backend-ul ──
+async function sendIncident(type, extra={}){
+  const loc = await getLocation();
+  const payload = {
+    situation_type: type,
+    qr_code_id: QR_ID,
+    latitude: loc.lat,
+    longitude: loc.lng,
+    location_accuracy_m: loc.accuracy,
+    location_method: loc.method,
+    ...extra
+  };
+  // TODO: descomenteaza cand ai API_BASE
+  // const res = await fetch(`${API_BASE}/incidents`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  // return res.json();
+  console.log('[SafeOut] Incident payload:', payload); // mock
+  return { id: 'mock-' + Date.now(), status: 'pending' };
+}
+
+// ── Clear cache dupa sesiune (securitate) ──
+function clearCache(){
+  if('caches' in window) caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+  sessionStorage.clear();
+}
+
+// ── Confirm screen ──
+async function showConfirm(type){
+  const configs = {
+    escort:{
+      cls:'blue', stroke:'#a0aaff',
+      svgPath:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
+      title:'Staff has been alerted',
+      sub:'A trained staff member is heading to you. Stay where you are. They will use a code phrase to identify themselves.'
+    },
+    '112':{
+      cls:'red', stroke:'#ff8080',
+      svgPath:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      title:'Alert sent to 112',
+      sub:'Your location and metadata have been sent to emergency services and our dispatch center. Help is on the way.'
+    },
+    contact:{
+      cls:'teal', stroke:'#4ecfaa',
+      svgPath:'<polyline points="20 6 9 17 4 12"/>',
+      title:'Message sent',
+      sub:'Your contact has been alerted with your live location. They will call you as soon as possible.'
+    }
+  };
+  const c = configs[type];
+  const icon = document.getElementById('confirmIcon');
+  icon.className = 'confirm-icon-wrap ' + c.cls;
+  const svg = document.getElementById('confirmSvg');
+  svg.setAttribute('stroke', c.stroke);
+  svg.innerHTML = c.svgPath;
+  document.getElementById('confirmTitle').textContent = c.title;
+  document.getElementById('confirmSub').textContent = c.sub;
+  const now = new Date();
+  document.getElementById('metaTime').textContent =
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('metaVenue').textContent = QR_ID !== 'demo' ? QR_ID.slice(0,12) : 'Demo venue';
+  showScreen('screen-confirm');
+  const incident = await sendIncident(type === '112' ? 'emergency' : type === 'escort' ? 'escort' : 'contact');
+  document.getElementById('metaLoc').textContent = 'Transmitted';
+}
+
+// ── Sheet ──
+function openSheet(){ document.getElementById('sheetOverlay').classList.add('open'); }
+function closeSheetOutside(e){ if(e.target===document.getElementById('sheetOverlay')) document.getElementById('sheetOverlay').classList.remove('open'); }
+function sendToContact(name){
+  document.getElementById('sheetOverlay').classList.remove('open');
+  showConfirm('contact');
+}
+</script>
+</body>
+</html>

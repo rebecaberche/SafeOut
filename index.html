@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeOut · System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080810;--burg:#7D2545;--burg2:#9d3057;--text:rgba(255,255,255,.9);--text2:rgba(255,255,255,.45);--text3:rgba(255,255,255,.2);--border:rgba(255,255,255,.07)}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text)}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(125,37,69,.08),transparent 70%)}
+.wrap{width:100%;max-width:680px}
+.head{text-align:center;margin-bottom:48px}
+.logo{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:var(--burg);letter-spacing:-.02em;margin-bottom:8px}
+.logo-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;letter-spacing:.3em;color:var(--text3);text-transform:uppercase}
+.tagline{font-size:14px;color:var(--text2);margin-top:16px;font-weight:300}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+.card{display:flex;align-items:center;gap:18px;background:#0f0f1a;border:1px solid var(--border);border-radius:16px;padding:22px 24px;text-decoration:none;color:inherit;transition:border-color .2s,transform .2s;cursor:pointer}
+.card:hover{border-color:var(--burg);transform:translateY(-2px)}
+.card-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(125,37,69,.12);border:1px solid rgba(125,37,69,.25)}
+.card-icon svg{width:24px;height:24px;stroke:var(--burg2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card-body{flex:1}
+.card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:3px}
+.card-desc{font-size:12px;color:var(--text2);font-weight:300;line-height:1.5}
+.card-zone{font-size:10px;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
+.card-arrow{font-size:22px;color:var(--text3)}
+.footer{text-align:center;margin-top:40px;font-size:11px;color:var(--text3);line-height:1.8}
+.footer a{color:var(--text2);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="logo">SO</div>
+    <div class="logo-name">SafeOut</div>
+    <div class="tagline">Help is here. Tap once. — Frontend system preview</div>
+  </div>
+  <div class="grid">
+    <a class="card" href="pwa.html?q=demo-venue">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Beneficiary PWA</div>
+        <div class="card-desc">What the person scanning the QR sees — 4 action buttons, contact sheet, info, disguise mode</div>
+        <div class="card-zone">Zone 1 · Beneficiary</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a class="card" href="dispatcher.html">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">Dispatch Center</div>
+        <div class="card-desc">Live incidents, map view, acknowledge/resolve/112, audit log — for trained dispatchers</div>
+        <div class="card-zone">Zone 2 · Admin Zonal</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a class="card" href="poweradmin.html">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
+      <div class="card-body">
+        <div class="card-title">PowerAdmin</div>
+        <div class="card-desc">Venues, QR codes, dispatchers, evidence, analytics, reports — full NGO control panel</div>
+        <div class="card-zone">Zone 3 · PowerAdmin / NGO</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+  </div>
+  <div class="footer">
+    All three interfaces use mock data and are ready to connect to your Python + PostgreSQL backend.<br>
+    Search for <strong>TODO</strong> in each file to find every integration point.
+  </div>
+</div>
+</body>
+</html>

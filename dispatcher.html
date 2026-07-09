@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeOut · Dispatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070f;--bg2:#0d0d1a;--bg3:#111120;--bg4:#161626;
+  --burg:#7D2545;--burg-dim:rgba(125,37,69,0.12);--burg-border:rgba(125,37,69,0.25);
+  --blue:#7b8fff;--blue-dim:rgba(123,143,255,0.10);--blue-border:rgba(123,143,255,0.20);
+  --teal:#4ecfaa;--teal-dim:rgba(78,207,170,0.09);--teal-border:rgba(78,207,170,0.18);
+  --red:#ff6b6b;--red-dim:rgba(255,107,107,0.10);--red-border:rgba(255,107,107,0.22);
+  --amber:#ffb347;--amber-dim:rgba(255,179,71,0.10);--amber-border:rgba(255,179,71,0.22);
+  --text:rgba(255,255,255,0.90);--text2:rgba(255,255,255,0.42);--text3:rgba(255,255,255,0.18);
+  --border:rgba(255,255,255,0.07);--r:12px;--r-sm:8px;
+}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+#loginScreen.hidden{display:none}
+.login-card{width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px 32px}
+.login-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--burg);letter-spacing:-.02em;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text2);margin-bottom:32px;letter-spacing:.04em}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:500;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .15s}
+.field input:focus{border-color:var(--burg-border)}
+.field input::placeholder{color:var(--text3)}
+.login-btn{width:100%;background:var(--burg);border:none;border-radius:var(--r-sm);padding:13px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;transition:opacity .15s;letter-spacing:.04em}
+.login-btn:hover{opacity:.88}
+.login-note{font-size:11px;color:var(--text3);text-align:center;margin-top:16px}
+
+/* ── LAYOUT ── */
+#appShell{display:flex;height:100vh;overflow:hidden}
+#appShell.hidden{display:none}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.s-logo-mark{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--burg)}
+.s-logo-name{font-size:10px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+.sidebar-role{margin:12px 16px;background:var(--burg-dim);border:1px solid var(--burg-border);border-radius:var(--r-sm);padding:10px 12px}
+.role-label{font-size:9px;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;margin-bottom:2px}
+.role-name{font-size:13px;font-weight:500;color:var(--text)}
+.role-center{font-size:11px;color:var(--text2);margin-top:1px}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border:none;background:none;width:100%;text-align:left;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;transition:background .12s,color .12s;border-radius:0}
+.nav-item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{background:var(--burg-dim);color:var(--burg);border-right:2px solid var(--burg)}
+.nav-section{font-size:9px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;padding:14px 16px 4px}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.online-badge{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--teal)}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.65)}}
+.logout-btn{display:flex;align-items:center;gap:7px;background:none;border:none;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;margin-top:10px;transition:color .15s}
+.logout-btn:hover{color:var(--text2)}
+.logout-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-time{font-size:12px;color:var(--text3);letter-spacing:.06em}
+.notif-btn{width:32px;height:32px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .12s}
+.notif-btn:hover{background:var(--bg4)}
+.notif-btn svg{width:16px;height:16px;stroke:var(--text2);fill:none;stroke-width:1.8}
+.notif-badge{position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:var(--red);border-radius:50%;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;border:2px solid var(--bg)}
+
+.page{display:none;flex:1;overflow-y:auto;padding:20px 24px}
+.page.active{display:block}
+.page::-webkit-scrollbar{width:4px}
+.page::-webkit-scrollbar-track{background:transparent}
+.page::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+/* ── STATS ROW ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.stat-label{font-size:10px;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.stat-val.red{color:var(--red)}
+.stat-val.amber{color:var(--amber)}
+.stat-val.teal{color:var(--teal)}
+.stat-val.blue{color:var(--blue)}
+
+/* ── INCIDENT LIST ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text)}
+.badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.04em}
+.badge.red{background:var(--red-dim);color:var(--red);border:1px solid var(--red-border)}
+.badge.amber{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-border)}
+.badge.teal{background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal-border)}
+.badge.gray{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border)}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.filter-btn{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-family:'DM Sans',sans-serif;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s}
+.filter-btn.active,.filter-btn:hover{background:var(--burg-dim);border-color:var(--burg-border);color:var(--burg)}
+
+.incident-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:hidden}
+.incident-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);border-radius:2px 0 0 2px}
+.incident-card.amber::before{background:var(--amber)}
+.incident-card.teal::before{background:var(--teal)}
+.incident-card.resolved::before{background:rgba(255,255,255,.1)}
+.incident-card:hover{border-color:rgba(255,255,255,.14);background:var(--bg3)}
+.inc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.inc-type{display:flex;align-items:center;gap:8px}
+.inc-type-icon{font-size:16px}
+.inc-type-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text)}
+.inc-time{font-size:11px;color:var(--text3)}
+.inc-meta{display:flex;gap:16px;margin-bottom:10px}
+.inc-meta-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.inc-meta-item svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8}
+.inc-actions{display:flex;gap:8px;flex-wrap:wrap}
+.inc-btn{padding:6px 13px;border-radius:var(--r-sm);border:none;font-family:'Syne',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:opacity .15s;letter-spacing:.03em}
+.inc-btn:hover{opacity:.82}
+.inc-btn.primary{background:var(--burg);color:#fff}
+.inc-btn.secondary{background:rgba(255,255,255,.07);color:var(--text2)}
+.inc-btn.danger{background:var(--red-dim);color:var(--red);border:1px solid var(--red-border)}
+.inc-btn.success{background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal-border)}
+.inc-msg{background:var(--bg3);border-radius:var(--r-sm);padding:8px 12px;font-size:12px;color:var(--text2);font-style:italic;margin-bottom:10px;border-left:2px solid var(--burg-border)}
+
+/* ── MAP PLACEHOLDER ── */
+.map-placeholder{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);height:260px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;position:relative;overflow:hidden}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:30px 30px}
+.map-center-dot{width:12px;height:12px;border-radius:50%;background:var(--burg);box-shadow:0 0 0 4px rgba(125,37,69,.25),0 0 0 8px rgba(125,37,69,.1);position:relative;z-index:1}
+.map-note{position:absolute;bottom:12px;right:12px;font-size:10px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px}
+
+/* ── NOTES ── */
+.notes-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);width:100%;resize:none;height:80px;outline:none;transition:border-color .15s;margin-top:8px}
+.notes-area:focus{border-color:var(--burg-border)}
+.notes-area::placeholder{color:var(--text3)}
+.notes-submit{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 16px;font-family:'Syne',sans-serif;font-size:12px;color:var(--text2);cursor:pointer;margin-top:6px;transition:all .15s}
+.notes-submit:hover{border-color:var(--burg-border);color:var(--burg)}
+
+/* ── AUDIT LOG ── */
+.log-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-item:last-child{border-bottom:none}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.log-dot.red{background:var(--red)}
+.log-dot.amber{background:var(--amber)}
+.log-dot.teal{background:var(--teal)}
+.log-dot.blue{background:var(--blue)}
+.log-dot.gray{background:rgba(255,255,255,.2)}
+.log-body{flex:1}
+.log-action{font-size:12px;color:var(--text);margin-bottom:2px}
+.log-meta{font-size:10px;color:var(--text3)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">SO</div>
+    <div class="login-sub">SAFEOUT · DISPATCH CENTER</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="dispatcher@safeout.ro" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <!-- TODO: adauga TOTP (2FA) input cand backend-ul e gata -->
+    <button class="login-btn" onclick="doLogin()">Sign in to Dispatch</button>
+    <div class="login-note">
+      <!-- TODO: conecteaza la POST /auth/login → JWT token -->
+      Demo: orice email + parola
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appShell" class="hidden">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="s-logo-mark">SO</div>
+      <div class="s-logo-name">Dispatch Center</div>
+    </div>
+    <div class="sidebar-role">
+      <div class="role-label">Logged in as</div>
+      <div class="role-name" id="dispatcherName">—</div>
+      <div class="role-center">Dispecerat Central</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Operations</div>
+      <button class="nav-item active" onclick="switchPage('live')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Live Incidents
+      </button>
+      <button class="nav-item" onclick="switchPage('map')">
+        <svg viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        Map View
+      </button>
+      <button class="nav-item" onclick="switchPage('history')">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        History
+      </button>
+      <div class="nav-section">Admin</div>
+      <button class="nav-item" onclick="switchPage('audit')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Audit Log
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="online-badge"><div class="online-dot"></div>Online · Active</div>
+      <!-- TODO: WebSocket status indicator cand e gata realtime -->
+      <button class="logout-btn" onclick="doLogout()">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Live Incidents</div>
+      <div class="topbar-right">
+        <span class="topbar-time" id="topbarTime">—</span>
+        <div class="notif-btn" title="Notifications">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div class="notif-badge" id="notifBadge">3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: LIVE -->
+    <div class="page active" id="page-live">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Active now</div><div class="stat-val red" id="statActive">3</div><div class="stat-sub">require action</div></div>
+        <div class="stat-card"><div class="stat-label">Acknowledged</div><div class="stat-val amber" id="statAck">1</div><div class="stat-sub">in progress</div></div>
+        <div class="stat-card"><div class="stat-label">Tonight</div><div class="stat-val teal" id="statTonight">7</div><div class="stat-sub">total incidents</div></div>
+        <div class="stat-card"><div class="stat-label">Avg response</div><div class="stat-val blue">1:42</div><div class="stat-sub">minutes</div></div>
+      </div>
+
+      <div class="section-head">
+        <span class="section-title">Active Incidents</span>
+        <span class="badge red" id="activeCount">3 pending</span>
+      </div>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="filterIncidents('all',this)">All</button>
+        <button class="filter-btn" onclick="filterIncidents('emergency',this)">🆘 Emergency</button>
+        <button class="filter-btn" onclick="filterIncidents('escort',this)">🚪 Escort</button>
+        <button class="filter-btn" onclick="filterIncidents('contact',this)">📱 Contact</button>
+      </div>
+      <div id="incidentList"></div>
+    </div>
+
+    <!-- PAGE: MAP -->
+    <div class="page" id="page-map">
+      <div class="map-placeholder">
+        <div class="map-grid"></div>
+        <div class="map-center-dot"></div>
+        <div class="map-note">
+          <!-- TODO: integreaza Leaflet.js cu tile layer OpenStreetMap cand ai API key -->
+          Map integration pending · Leaflet.js ready to connect
+        </div>
+      </div>
+      <div class="section-head"><span class="section-title">Active locations</span></div>
+      <div id="mapIncidentList"></div>
+    </div>
+
+    <!-- PAGE: HISTORY -->
+    <div class="page" id="page-history">
+      <div class="section-head"><span class="section-title">Resolved Incidents</span><span class="badge gray">Last 7 days</span></div>
+      <div id="historyList"></div>
+    </div>
+
+    <!-- PAGE: AUDIT -->
+    <div class="page" id="page-audit">
+      <div class="section-head"><span class="section-title">Audit Log</span><span class="badge gray">This session</span></div>
+      <div class="who-card" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px" id="auditLog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG — inlocuieste cu URL real cand e gata backend-ul ──
+const API_BASE = ''; // ex: 'https://api.safeout.ro'
+const REALTIME_URL = ''; // ex: 'wss://api.safeout.ro/ws'
+
+// ── STATE ──
+let currentUser = null;
+let authToken = null; // TODO: JWT din POST /auth/login
+let ws = null;        // TODO: WebSocket pentru realtime
+
+// ── MOCK DATA (inlocuieste cu fetch real) ──
+const MOCK_INCIDENTS = [
+  { id:'inc-001', type:'emergency', status:'pending', venue:'Club Neptun, Oradea', qr:'cab-f2', time:'22:47', ago:'2 min ago', message:'Am nevoie de ajutor urgent', lat:47.051, lng:21.921, priority:'high' },
+  { id:'inc-002', type:'escort', status:'pending', venue:'Hotel Mercur, Oradea', qr:'lobby-1', time:'22:43', ago:'6 min ago', message:'', lat:47.052, lng:21.919, priority:'high' },
+  { id:'inc-003', type:'contact', status:'acknowledged', venue:'Gara Oradea', qr:'peron-2', time:'22:31', ago:'18 min ago', message:'', lat:47.053, lng:21.922, priority:'normal' },
+  { id:'inc-004', type:'emergency', status:'resolved', venue:'Bar Central, Oradea', qr:'bar-1', time:'21:15', ago:'1h 32min ago', message:'', lat:47.050, lng:21.918, priority:'high' },
+  { id:'inc-005', type:'escort', status:'resolved', venue:'Mall Plaza, Oradea', qr:'toilet-f3', time:'20:40', ago:'2h 7min ago', message:'', lat:47.049, lng:21.920, priority:'normal' },
+];
+let incidents = [...MOCK_INCIDENTS];
+let auditEntries = [];
+
+const TYPE_META = {
+  emergency:{ label:'112 — Emergency', icon:'🆘', color:'red' },
+  escort:{ label:'Get me out', icon:'🚪', color:'amber' },
+  contact:{ label:'Call somebody', icon:'📱', color:'blue' },
+};
+
+// ── CLOCK ──
+function updateClock(){
+  const now = new Date();
+  const t = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const el = document.getElementById('topbarTime');
+  if(el) el.textContent = t;
+}
+updateClock(); setInterval(updateClock,30000);
+
+// ── AUTH ──
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if(!email){ alert('Enter your email'); return; }
+
+  /* TODO: conecteaza la backend
+  fetch(`${API_BASE}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})})
+    .then(r=>r.json())
+    .then(data=>{
+      authToken = data.access_token;
+      currentUser = data.dispatcher;
+      onLoginSuccess();
+    }); */
+
+  // MOCK login
+  currentUser = { full_name: email.split('@')[0], role:'dispatcher', dispatch_center_id:'dc-001' };
+  authToken = 'mock-token';
+  onLoginSuccess();
+}
+
+function onLoginSuccess(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  document.getElementById('dispatcherName').textContent = currentUser.full_name;
+  renderIncidents();
+  addAudit('Logged in', 'blue', `Session started for ${currentUser.full_name}`);
+  // TODO: initWebSocket();
+}
+
+function doLogout(){
+  authToken = null; currentUser = null;
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+/* TODO: WebSocket pentru realtime alerts
+function initWebSocket(){
+  ws = new WebSocket(`${REALTIME_URL}?token=${authToken}`);
+  ws.onmessage = (e) => {
+    const incident = JSON.parse(e.data);
+    incidents.unshift(incident);
+    renderIncidents();
+    addAudit('New incident received', 'red', `${incident.type} from ${incident.venue}`);
+  };
+  ws.onclose = () => setTimeout(initWebSocket, 3000); // reconnect
+}
+*/
+
+// ── NAV ──
+const PAGE_TITLES = { live:'Live Incidents', map:'Map View', history:'History', audit:'Audit Log' };
+function switchPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[id];
+  if(id==='history') renderHistory();
+  if(id==='map') renderMapList();
+  if(id==='audit') renderAuditLog();
+}
+
+// ── FILTER ──
+let activeFilter = 'all';
+function filterIncidents(type, btn){
+  activeFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderIncidents();
+}
+
+// ── RENDER ──
+function renderIncidents(){
+  const filtered = incidents.filter(i=>i.status!=='resolved' && (activeFilter==='all'||i.type===activeFilter));
+  const pending = filtered.filter(i=>i.status==='pending').length;
+  document.getElementById('activeCount').textContent = `${pending} pending`;
+  document.getElementById('statActive').textContent = pending;
+  document.getElementById('statAck').textContent = filtered.filter(i=>i.status==='acknowledged').length;
+  document.getElementById('notifBadge').textContent = pending;
+  document.getElementById('incidentList').innerHTML = filtered.length
+    ? filtered.map(i=>incidentCardHTML(i)).join('')
+    : '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">No active incidents</div>';
+}
+
+function incidentCardHTML(inc){
+  const m = TYPE_META[inc.type];
+  const isPending = inc.status === 'pending';
+  return `
+  <div class="incident-card ${m.color} ${inc.status==='resolved'?'resolved':''}" id="card-${inc.id}">
+    <div class="inc-top">
+      <div class="inc-type">
+        <span class="inc-type-icon">${m.icon}</span>
+        <span class="inc-type-label">${m.label}</span>
+        <span class="badge ${m.color}">${inc.status.toUpperCase()}</span>
+      </div>
+      <span class="inc-time">${inc.ago}</span>
+    </div>
+    <div class="inc-meta">
+      <div class="inc-meta-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${inc.venue}</div>
+      <div class="inc-meta-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>QR: ${inc.qr}</div>
+    </div>
+    ${inc.message ? `<div class="inc-msg">"${inc.message}"</div>` : ''}
+    <div class="inc-actions">
+      ${isPending ? `<button class="inc-btn primary" onclick="acknowledgeInc('${inc.id}')">Acknowledge</button>` : ''}
+      <button class="inc-btn danger" onclick="call112('${inc.id}')">Call 112</button>
+      <button class="inc-btn success" onclick="resolveInc('${inc.id}')">Resolve</button>
+      <button class="inc-btn secondary" onclick="toggleNotes('${inc.id}')">Notes</button>
+    </div>
+    <div id="notes-${inc.id}" style="display:none;margin-top:8px">
+      <textarea class="notes-area" placeholder="Add operational notes..." id="notesText-${inc.id}"></textarea>
+      <button class="notes-submit" onclick="saveNotes('${inc.id}')">Save note</button>
+    </div>
+  </div>`;
+}
+
+function acknowledgeInc(id){
+  /* TODO: PATCH ${API_BASE}/incidents/${id} { status:'acknowledged' } */
+  const inc = incidents.find(i=>i.id===id);
+  if(inc){ inc.status='acknowledged'; renderIncidents(); addAudit('Acknowledged','amber',`Incident ${id.slice(-6)} taken`); }
+}
+
+function resolveInc(id){
+  /* TODO: PATCH ${API_BASE}/incidents/${id} { status:'resolved' } */
+  const inc = incidents.find(i=>i.id===id);
+  if(inc){ inc.status='resolved'; renderIncidents(); addAudit('Resolved','teal',`Incident ${id.slice(-6)} closed`); }
+}
+
+function call112(id){
+  /* TODO: POST ${API_BASE}/incidents/${id}/actions { action_type:'called_112' } */
+  addAudit('Called 112','red',`Emergency services notified for ${id.slice(-6)}`);
+  alert('112 — Emergency services notified. Document the outcome in Notes.');
+}
+
+function toggleNotes(id){
+  const el = document.getElementById('notes-'+id);
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function saveNotes(id){
+  const text = document.getElementById('notesText-'+id).value.trim();
+  if(!text) return;
+  /* TODO: POST ${API_BASE}/incidents/${id}/actions { action_type:'note_added', notes: text } */
+  addAudit('Note added','blue',`"${text.slice(0,40)}${text.length>40?'…':''}"`);
+  document.getElementById('notes-'+id).style.display='none';
+}
+
+function renderHistory(){
+  const resolved = incidents.filter(i=>i.status==='resolved');
+  document.getElementById('historyList').innerHTML = resolved.length
+    ? resolved.map(i=>incidentCardHTML(i)).join('')
+    : '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">No resolved incidents yet</div>';
+}
+
+function renderMapList(){
+  const active = incidents.filter(i=>i.status!=='resolved');
+  document.getElementById('mapIncidentList').innerHTML = active.map(i=>{
+    const m = TYPE_META[i.type];
+    return `<div class="incident-card ${m.color}" style="margin-bottom:8px;cursor:default">
+      <div class="inc-top"><div class="inc-type"><span>${m.icon}</span><span class="inc-type-label">${m.label}</span><span class="badge ${m.color}">${i.status}</span></div><span class="inc-time">${i.ago}</span></div>
+      <div class="inc-meta"><div class="inc-meta-item">${i.venue}</div></div>
+      ${i.lat ? `<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">${i.lat.toFixed(4)}, ${i.lng.toFixed(4)}</div></div>` : ''}
+    </div>`;
+  }).join('') || '<div style="text-align:center;color:var(--text3);padding:40px 0;font-size:13px">No active incidents on map</div>';
+}
+
+// ── AUDIT ──
+function addAudit(action, color, detail){
+  auditEntries.unshift({ action, color, detail, time: new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}) });
+}
+
+function renderAuditLog(){
+  const el = document.getElementById('auditLog');
+  if(!auditEntries.length){ el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No actions yet this session</div>'; return; }
+  el.innerHTML = auditEntries.map(e=>`
+    <div class="log-item">
+      <div class="log-dot ${e.color}"></div>
+      <div class="log-body">
+        <div class="log-action">${e.action}</div>
+        <div class="log-meta">${e.detail} · ${e.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('statTonight').textContent = incidents.length;
+</script>
+</body>
+</html>
