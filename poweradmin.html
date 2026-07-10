@@ -111,7 +111,8 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <div class="login-sub">SAFEOUT &middot; POWERADMIN</div>
 <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="user@admin.ro"></div>
 <div class="field"><label>Password</label><input type="password" id="loginPass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
-<button class="login-btn" onclick="doLogin()">Sign in to PowerAdmin</button>
+<div id="loginError" style="display:none;background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#ff8080;text-align:center">Access denied. Invalid credentials.</div>
+    <button class="login-btn" onclick="doLogin()">Sign in to PowerAdmin</button>
 </div></div>
 <div id="appShell" class="hidden">
 <div class="sidebar">
@@ -134,12 +135,12 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <div class="main">
 <div class="topbar"><div class="topbar-title" id="topbarTitle">Dashboard</div><span class="topbar-time" id="topbarTime">&mdash;</span></div>
 <div class="page active" id="page-dashboard">
-<div class="stats-grid"><div class="stat-card"><div class="stat-label">Active venues</div><div class="stat-val teal">12</div><div class="stat-sub">of 15 partners</div></div><div class="stat-card"><div class="stat-label">Total scans</div><div class="stat-val blue">1,847</div><div class="stat-sub">last 30 days</div></div><div class="stat-card"><div class="stat-label">Incidents</div><div class="stat-val amber">94</div><div class="stat-sub">this month</div></div><div class="stat-card"><div class="stat-label">Dispatchers</div><div class="stat-val burg">6</div><div class="stat-sub">4 online now</div></div></div>
+<div class="stats-grid"><div class="stat-card"><div class="stat-label">Active venues</div><div class="stat-val teal" id="paVenues">0</div><div class="stat-sub">partners</div></div><div class="stat-card"><div class="stat-label">Total scans</div><div class="stat-val blue" id="paScans">0</div><div class="stat-sub">all time</div></div><div class="stat-card"><div class="stat-label">Incidents</div><div class="stat-val amber" id="paIncidents">0</div><div class="stat-sub">all time</div></div><div class="stat-card"><div class="stat-label">Dispatchers</div><div class="stat-val burg" id="paDispatchers">0</div><div class="stat-sub">registered</div></div></div>
 <div class="chart-card"><div class="chart-title">Incidents per week - last 8 weeks</div><div class="bar-chart" id="weekChart"></div></div>
 <div class="chart-card"><div class="chart-title">Incident types breakdown</div><div class="type-breakdown"><div class="type-card"><div class="type-icon">&#128680;</div><div class="type-count" style="color:var(--red)">31</div><div class="type-name">Emergency 112</div></div><div class="type-card"><div class="type-icon">&#128682;</div><div class="type-count" style="color:var(--amber)">42</div><div class="type-name">Get me out</div></div><div class="type-card"><div class="type-icon">&#128241;</div><div class="type-count" style="color:var(--blue)">21</div><div class="type-name">Call somebody</div></div></div></div>
 </div>
 <div class="page" id="page-analytics">
-<div class="stats-grid"><div class="stat-card"><div class="stat-label">Avg response</div><div class="stat-val teal">1:38</div><div class="stat-sub">minutes</div></div><div class="stat-card"><div class="stat-label">Resolution rate</div><div class="stat-val blue">96%</div><div class="stat-sub">incidents closed</div></div><div class="stat-card"><div class="stat-label">112 escalations</div><div class="stat-val amber">8</div><div class="stat-sub">this month</div></div><div class="stat-card"><div class="stat-label">False alarms</div><div class="stat-val burg">5%</div><div class="stat-sub">filtered</div></div></div>
+<div class="stats-grid"><div class="stat-card"><div class="stat-label">Avg response</div><div class="stat-val teal">&mdash;</div><div class="stat-sub">minutes</div></div><div class="stat-card"><div class="stat-label">Resolution rate</div><div class="stat-val blue" id="paResRate">&mdash;</div><div class="stat-sub">incidents closed</div></div><div class="stat-card"><div class="stat-label">112 escalations</div><div class="stat-val amber" id="paEmergency">0</div><div class="stat-sub">all time</div></div><div class="stat-card"><div class="stat-label">False alarms</div><div class="stat-val burg">&mdash;</div><div class="stat-sub">filtered</div></div></div>
 <div class="chart-card"><div class="chart-title">Scans by venue type</div><div class="bar-chart" id="venueTypeChart"></div></div>
 <div class="chart-card"><div class="chart-title">Peak hours (incidents)</div><div class="bar-chart" id="hoursChart"></div></div>
 </div>
@@ -148,34 +149,134 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <div class="page" id="page-dispatchers"><div class="section-head"><span class="section-title">Dispatchers</span><button class="btn-add" onclick="openModal('dispatcher')"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add dispatcher</button></div><table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody id="dispatchersTable"></tbody></table></div>
 <div class="page" id="page-evidence"><div class="section-head"><span class="section-title">Evidence Files</span><span style="font-size:11px;color:var(--text3)">FIFO auto-delete after 90 days &middot; legal hold excluded</span></div><table class="data-table"><thead><tr><th>Incident</th><th>Type</th><th>Uploaded</th><th>Expires</th><th>Legal hold</th><th></th></tr></thead><tbody id="evidenceTable"></tbody></table></div>
 <div class="page" id="page-reports"><div class="section-head"><span class="section-title">Reports &amp; Export</span></div><div class="export-row"><button class="export-btn" onclick="mockExport('PDF')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Monthly report (PDF)</button><button class="export-btn" onclick="mockExport('CSV')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Incident data (CSV)</button><button class="export-btn" onclick="mockExport('ANITP')"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>ANITP summary</button></div>
-<div class="chart-card"><div class="chart-title">Report preview - November 2026</div><table class="data-table" style="border:none"><thead><tr><th>Metric</th><th>Value</th><th>vs last month</th></tr></thead><tbody><tr><td class="cell-main">Total incidents</td><td>94</td><td style="color:var(--teal)">+12%</td></tr><tr><td class="cell-main">Emergency escalations</td><td>8</td><td style="color:var(--amber)">+2</td></tr><tr><td class="cell-main">Avg response time</td><td>1:38</td><td style="color:var(--teal)">-14s</td></tr><tr><td class="cell-main">Active venues</td><td>12</td><td style="color:var(--teal)">+3</td></tr><tr><td class="cell-main">New dispatchers trained</td><td>2</td><td style="color:var(--text3)">&mdash;</td></tr></tbody></table></div>
+<div class="chart-card"><div class="chart-title" id="reportTitle">Report preview</div><table class="data-table" style="border:none"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td class="cell-main">Total incidents</td><td id="rTotal">0</td></tr><tr><td class="cell-main">Emergency escalations</td><td id="rEmergency">0</td></tr><tr><td class="cell-main">Resolved</td><td id="rResolved">0</td></tr><tr><td class="cell-main">Active venues</td><td id="rVenues">0</td></tr><tr><td class="cell-main">Registered dispatchers</td><td id="rDispatchers">0</td></tr></tbody></table></div>
 </div>
 </div></div>
 <div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)"><div class="modal"><div class="modal-title" id="modalTitle">Add</div><div class="modal-sub" id="modalSub">Fill in the details below</div><div id="modalFields"></div><div class="modal-actions"><button class="modal-btn cancel" onclick="closeModal()">Cancel</button><button class="modal-btn primary" onclick="submitModal()">Save</button></div></div></div>
 <script>
-const API_BASE='';let authToken=null;
-const MOCK_VENUES=[{id:'v1',name:'Club Neptun',type:'bar',city:'Oradea',qrCount:4,active:true},{id:'v2',name:'Hotel Mercur',type:'hotel',city:'Oradea',qrCount:6,active:true},{id:'v3',name:'Gara Oradea',type:'transport',city:'Oradea',qrCount:8,active:true},{id:'v4',name:'Mall Plaza',type:'mall',city:'Oradea',qrCount:5,active:true},{id:'v5',name:'Bar Central',type:'bar',city:'Oradea',qrCount:3,active:false}];
-const MOCK_DISPATCHERS=[{id:'d1',name:'Ana Pop',email:'ana@admin.ro',role:'dispatcher',active:true},{id:'d2',name:'Mihai Ionescu',email:'mihai@admin.ro',role:'supervisor',active:true},{id:'d3',name:'Elena Radu',email:'elena@admin.ro',role:'dispatcher',active:true},{id:'d4',name:'Andrei Voicu',email:'andrei@admin.ro',role:'dispatcher',active:false}];
-const MOCK_QR=[{id:'q1',code:'NPT-F2',venue:'Club Neptun',placement:'Baie femei, cabina 2',scans:142,active:true},{id:'q2',code:'MRC-L1',venue:'Hotel Mercur',placement:'Lobby',scans:89,active:true},{id:'q3',code:'GAR-P2',venue:'Gara Oradea',placement:'Peron 2',scans:201,active:true},{id:'q4',code:'MLL-F3',venue:'Mall Plaza',placement:'Toaleta et. 3',scans:67,active:true}];
-const MOCK_EVIDENCE=[{id:'e1',incident:'inc-001',type:'photo',uploaded:'2026-11-20',expires:'2027-02-18',hold:true},{id:'e2',incident:'inc-004',type:'audio',uploaded:'2026-11-18',expires:'2027-02-16',hold:false},{id:'e3',incident:'inc-007',type:'photo',uploaded:'2026-11-15',expires:'2027-02-13',hold:false}];
+// ============================================================
+//  SafeOut — PowerAdmin (NGO control panel)
+//  Secure login. No mock data. Real incidents from shared store.
+// ============================================================
+const API_BASE = ''; // TODO: backend URL
+
+const AUTHORISED = [
+  { email: 'rebeca.berche@sinca.org', pass_b64: 'cmViZWNAMjAwOA==', full_name: 'Rebeca Berche', role: 'admin' }
+];
+
+const STORE_KEY = 'safeout_incidents';
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }catch(e){ return []; } }
+
+// Real data stores (empty until admin adds them / backend provides them)
+let VENUES = [];
+let DISPATCHERS = [];
+let QRCODES = [];
+let EVIDENCE = [];
+
+const QR_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white"/><g fill="#1C1C1E"><rect x="10" y="10" width="25" height="25"/><rect x="65" y="10" width="25" height="25"/><rect x="10" y="65" width="25" height="25"/><rect x="16" y="16" width="13" height="13" fill="white"/><rect x="71" y="16" width="13" height="13" fill="white"/><rect x="16" y="71" width="13" height="13" fill="white"/><rect x="45" y="10" width="6" height="6"/><rect x="55" y="45" width="6" height="6"/><rect x="45" y="55" width="6" height="6"/><rect x="65" y="55" width="6" height="6"/><rect x="45" y="78" width="6" height="6"/></g><circle cx="50" cy="50" r="9" fill="#7D2545"/></svg>`;
+
 function updateClock(){const el=document.getElementById('topbarTime');if(el){const n=new Date();el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}}
 updateClock();setInterval(updateClock,30000);
-function doLogin(){const email=document.getElementById('loginEmail').value.trim();if(!email){alert('Enter your email');return;}authToken='mock-token';document.getElementById('loginScreen').classList.add('hidden');document.getElementById('appShell').classList.remove('hidden');renderAll();}
-function doLogout(){authToken=null;document.getElementById('appShell').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
+
+// ---- Secure login ----
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('loginPass').value;
+  const match=AUTHORISED.find(u=>u.email.toLowerCase()===email);
+  const ok=match && btoa(pass)===match.pass_b64;
+  if(!ok){ const err=document.getElementById('loginError'); if(err) err.style.display='block'; return; }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  renderAll();
+}
+function doLogout(){
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  const p=document.getElementById('loginPass'); if(p) p.value='';
+}
+
 const TITLES={dashboard:'Dashboard',analytics:'Analytics',venues:'Venues',qrcodes:'QR Codes',dispatchers:'Dispatchers',evidence:'Evidence',reports:'Reports & Export'};
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=TITLES[id];}
-function renderAll(){renderVenues();renderDispatchers();renderQR();renderEvidence();renderCharts();}
-function renderVenues(){document.getElementById('venuesTable').innerHTML=MOCK_VENUES.map(v=>'<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+v.city+'</td><td>'+v.qrCount+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="mockAction(\'Edit\')">Edit</button><button class="table-action" onclick="mockAction(\'Toggle\')">'+(v.active?'Disable':'Enable')+'</button></td></tr>').join('');}
-function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=MOCK_DISPATCHERS.map(d=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="mockAction(\'Edit\')">Edit</button><button class="table-action" onclick="mockAction(\'Toggle\')">'+(d.active?'Suspend':'Activate')+'</button></td></tr>').join('');}
-const QR_SVG='<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="white"/><g fill="#1C1C1E"><rect x="10" y="10" width="25" height="25"/><rect x="65" y="10" width="25" height="25"/><rect x="10" y="65" width="25" height="25"/><rect x="16" y="16" width="13" height="13" fill="white"/><rect x="71" y="16" width="13" height="13" fill="white"/><rect x="16" y="71" width="13" height="13" fill="white"/><rect x="45" y="10" width="6" height="6"/><rect x="45" y="22" width="6" height="6"/><rect x="55" y="45" width="6" height="6"/><rect x="45" y="55" width="6" height="6"/><rect x="65" y="55" width="6" height="6"/><rect x="78" y="65" width="6" height="6"/><rect x="65" y="78" width="6" height="6"/><rect x="45" y="78" width="6" height="6"/></g><circle cx="50" cy="50" r="9" fill="#7D2545"/></svg>';
-function renderQR(){document.getElementById('qrGrid').innerHTML=MOCK_QR.map(q=>'<div class="qr-card"><div class="qr-visual">'+QR_SVG+'</div><div class="qr-code-label">'+q.code+'</div><div class="qr-venue">'+q.venue+' &middot; '+q.placement+'</div><div class="qr-scans">'+q.scans+' scans</div><button class="table-action" onclick="mockAction(\'Download\')">Download</button></div>').join('');}
-function renderEvidence(){document.getElementById('evidenceTable').innerHTML=MOCK_EVIDENCE.map(e=>'<tr><td class="cell-main">'+e.incident+'</td><td style="text-transform:capitalize">'+e.type+'</td><td style="color:var(--text2)">'+e.uploaded+'</td><td style="color:var(--text2)">'+e.expires+'</td><td>'+(e.hold?'<span class="status-pill active">Legal hold</span>':'<span class="status-pill inactive">None</span>')+'</td><td><button class="table-action" onclick="mockAction(\'Toggle hold\')">'+(e.hold?'Release':'Hold')+'</button></td></tr>').join('');}
-function renderCharts(){const weeks=[12,18,15,22,19,25,21,28];const maxW=Math.max(...weeks);document.getElementById('weekChart').innerHTML=weeks.map((v,i)=>'<div class="bar-col"><div class="bar" data-val="'+v+'" style="height:'+(v/maxW*100)+'%"></div><div class="bar-label">W'+(i+1)+'</div></div>').join('');const types=[{l:'Bars',v:680},{l:'Hotels',v:420},{l:'Transport',v:510},{l:'Malls',v:237}];const maxT=Math.max(...types.map(t=>t.v));const vtc=document.getElementById('venueTypeChart');if(vtc)vtc.innerHTML=types.map(t=>'<div class="bar-col"><div class="bar" data-val="'+t.v+'" style="height:'+(t.v/maxT*100)+'%"></div><div class="bar-label">'+t.l+'</div></div>').join('');const hours=[{l:'20h',v:8},{l:'21h',v:14},{l:'22h',v:22},{l:'23h',v:28},{l:'00h',v:24},{l:'01h',v:18},{l:'02h',v:12},{l:'03h',v:6}];const maxH=Math.max(...hours.map(h=>h.v));const hc=document.getElementById('hoursChart');if(hc)hc.innerHTML=hours.map(h=>'<div class="bar-col"><div class="bar" data-val="'+h.v+'" style="height:'+(h.v/maxH*100)+'%"></div><div class="bar-label">'+h.l+'</div></div>').join('');}
-const MODAL_CONFIG={venue:{title:'Add venue',sub:'Register a new partner location',fields:[['Venue name','text','Club Neptun'],['Type','text','bar / hotel / transport / mall'],['City','text','Oradea'],['Address','text','Str. Republicii 5']]},dispatcher:{title:'Add dispatcher',sub:'Create a new dispatcher account',fields:[['Full name','text','Ana Pop'],['Email','email','user@admin.ro'],['Role','text','dispatcher / supervisor'],['Temporary password','password','']]},qr:{title:'Generate QR code',sub:'Create a new QR for a venue location',fields:[['Venue','text','Club Neptun'],['Placement','text','Baie femei, cabina 2'],['Short code','text','auto-generated']]}};
-function openModal(type){const c=MODAL_CONFIG[type];document.getElementById('modalTitle').textContent=c.title;document.getElementById('modalSub').textContent=c.sub;document.getElementById('modalFields').innerHTML=c.fields.map(f=>'<div class="field"><label>'+f[0]+'</label><input type="'+f[1]+'" placeholder="'+f[2]+'"></div>').join('');document.getElementById('modalOverlay').classList.add('open');}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=TITLES[id];if(id==='dashboard')renderDashboard();if(id==='reports')renderReport();}
+
+function renderAll(){renderDashboard();renderVenues();renderDispatchers();renderQR();renderEvidence();}
+function renderReport(){
+  const inc = loadStore();
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('rTotal', inc.length);
+  set('rEmergency', inc.filter(i=>i.situation_type==='emergency').length);
+  set('rResolved', inc.filter(i=>i.status==='resolved').length);
+  set('rVenues', VENUES.filter(v=>v.active).length);
+  set('rDispatchers', DISPATCHERS.length);
+  const t=document.getElementById('reportTitle');
+  if(t){ const m=new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}); t.textContent='Report preview \u2014 '+m; }
+}
+
+function renderDashboard(){
+  const incidents = loadStore();
+  const emergency = incidents.filter(i=>i.situation_type==='emergency').length;
+  const resolved = incidents.filter(i=>i.status==='resolved').length;
+  document.getElementById('paVenues').textContent = VENUES.filter(v=>v.active).length;
+  document.getElementById('paScans').textContent = QRCODES.reduce((s,q)=>s+(q.scans||0),0);
+  document.getElementById('paIncidents').textContent = incidents.length;
+  document.getElementById('paDispatchers').textContent = DISPATCHERS.length;
+  const em=document.getElementById('paEmergency'); if(em) em.textContent = emergency;
+  const rr=document.getElementById('paResRate'); if(rr) rr.textContent = incidents.length ? Math.round(resolved/incidents.length*100)+'%' : '—';
+  renderCharts(incidents);
+}
+
+const empty = (msg)=>'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">'+msg+'</td></tr>';
+
+function renderVenues(){document.getElementById('venuesTable').innerHTML=VENUES.length?VENUES.map(v=>'<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+v.city+'</td><td>'+(v.qrCount||0)+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="editItem()">Edit</button></td></tr>').join(''):empty('No venues yet. Click "Add venue" to register your first partner.');}
+
+function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map(d=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="editItem()">Edit</button></td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
+
+function renderQR(){document.getElementById('qrGrid').innerHTML=QRCODES.length?QRCODES.map(q=>'<div class="qr-card"><div class="qr-visual">'+QR_SVG+'</div><div class="qr-code-label">'+q.code+'</div><div class="qr-venue">'+q.venue+' &middot; '+q.placement+'</div><div class="qr-scans">'+(q.scans||0)+' scans</div><button class="table-action" onclick="editItem()">Download</button></div>').join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No QR codes yet. Click "Generate QR" to create one for a venue.</div>';}
+
+function renderEvidence(){document.getElementById('evidenceTable').innerHTML=EVIDENCE.length?EVIDENCE.map(e=>'<tr><td class="cell-main">'+e.incident+'</td><td style="text-transform:capitalize">'+e.type+'</td><td style="color:var(--text2)">'+e.uploaded+'</td><td style="color:var(--text2)">'+e.expires+'</td><td>'+(e.hold?'<span class="status-pill active">Legal hold</span>':'<span class="status-pill inactive">None</span>')+'</td><td><button class="table-action" onclick="editItem()">'+(e.hold?'Release':'Hold')+'</button></td></tr>').join(''):empty('No evidence files yet. They appear here when incidents with photos/audio come in.');}
+
+function renderCharts(incidents){
+  // Build a simple weekly count from real incidents (last 8 weeks)
+  const now = Date.now(); const weekMs = 7*24*3600*1000;
+  const weeks = new Array(8).fill(0);
+  (incidents||[]).forEach(i=>{
+    const t = new Date(i.created_at||Date.now()).getTime();
+    const wIdx = 7 - Math.min(7, Math.floor((now - t)/weekMs));
+    if(wIdx>=0 && wIdx<8) weeks[wIdx]++;
+  });
+  const maxW = Math.max(1, ...weeks);
+  const wc = document.getElementById('weekChart');
+  if(wc) wc.innerHTML = weeks.map((v,i)=>'<div class="bar-col"><div class="bar" data-val="'+v+'" style="height:'+(v/maxW*100)+'%"></div><div class="bar-label">W'+(i+1)+'</div></div>').join('');
+  // Type breakdown counts (dashboard cards) - update the numbers
+  const em = incidents.filter(i=>i.situation_type==='emergency').length;
+  const es = incidents.filter(i=>i.situation_type==='escort').length;
+  const co = incidents.filter(i=>i.situation_type==='contact').length;
+  const cards = document.querySelectorAll('.type-count');
+  if(cards.length>=3){ cards[0].textContent=em; cards[1].textContent=es; cards[2].textContent=co; }
+}
+
+// ---- Add via modal (writes to real in-memory stores) ----
+const MODAL_CONFIG={
+  venue:{title:'Add venue',sub:'Register a new partner location',fields:[['Venue name','text','name'],['Type','text','bar / hotel / transport / mall'],['City','text','Oradea'],['Address','text','Str. Republicii 5']]},
+  dispatcher:{title:'Add dispatcher',sub:'Create a new dispatcher account',fields:[['Full name','text','Full name'],['Email','email','user@admin.ro'],['Role','text','dispatcher / supervisor'],['Temporary password','password','']]},
+  qr:{title:'Generate QR code',sub:'Create a new QR for a venue location',fields:[['Venue','text','Venue name'],['Placement','text','Baie femei, cabina 2'],['Short code','text','auto-generated']]}
+};
+let currentModalType = null;
+function openModal(type){currentModalType=type;const cfg=MODAL_CONFIG[type];document.getElementById('modalTitle').textContent=cfg.title;document.getElementById('modalSub').textContent=cfg.sub;document.getElementById('modalFields').innerHTML=cfg.fields.map((f,idx)=>'<div class="field"><label>'+f[0]+'</label><input id="mf-'+idx+'" type="'+f[1]+'" placeholder="'+f[2]+'"></div>').join('');document.getElementById('modalOverlay').classList.add('open');}
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
 function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
-function submitModal(){closeModal();mockAction('Saved');}
-function mockAction(msg){console.log('[PowerAdmin]',msg);}
-function mockExport(fmt){alert('Export '+fmt+' - conecteaza la backend pentru generare reala.');}
+function submitModal(){
+  const get=(i)=>{const el=document.getElementById('mf-'+i);return el?el.value.trim():'';};
+  if(currentModalType==='venue'){ const name=get(0); if(name) VENUES.push({name,type:get(1)||'venue',city:get(2)||'',qrCount:0,active:true}); renderVenues(); }
+  else if(currentModalType==='dispatcher'){ const name=get(0),email=get(1); if(name&&email) DISPATCHERS.push({name,email,role:get(2)||'dispatcher',active:true}); renderDispatchers(); }
+  else if(currentModalType==='qr'){ const venue=get(0); if(venue) QRCODES.push({code:(get(2)||('SO-'+Math.random().toString(36).slice(2,6).toUpperCase())),venue,placement:get(1)||'',scans:0,active:true}); renderQR(); }
+  closeModal(); renderDashboard();
+}
+function editItem(){ /* editing UI comes with backend */ }
+function mockExport(fmt){ alert('Export '+fmt+' — requires the backend to generate the file.'); }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const p=document.getElementById('loginPass');
+  if(p) p.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+});
+
 </script></body></html>

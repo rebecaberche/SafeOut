@@ -22,10 +22,6 @@
 html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 100%,rgba(125,37,69,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}
 .shell{position:relative;z-index:1;width:min(100vw,390px);height:min(100vh,820px);margin:auto;background:var(--bg2);border-radius:clamp(0px,4vw,40px);border:1.5px solid rgba(255,255,255,0.07);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(0,0,0,0.5),0 40px 80px rgba(0,0,0,0.5)}
-.status{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 6px;flex-shrink:0}
-.status-time{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.04em}
-.status-icons{display:flex;gap:5px;align-items:center}
-.status-icons svg{width:13px;height:13px;fill:var(--text3)}
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:relative}
 .screen.active{display:flex}
 .main-header{padding:16px 22px 14px;flex-shrink:0}
@@ -139,17 +135,26 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .disguise-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:rgba(255,255,255,.3);margin-bottom:8px}
 .disguise-sub{font-size:12px;color:rgba(255,255,255,.15);font-weight:300;line-height:1.6;margin-bottom:32px}
 .disguise-back{font-size:10px;color:rgba(255,255,255,.1);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+
+.consent-scroll{flex:1;overflow-y:auto;padding:24px 22px}
+.consent-scroll::-webkit-scrollbar{display:none}
+.consent-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.2}
+.consent-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px;font-weight:300}
+.consent-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.consent-item-ico{width:34px;height:34px;border-radius:10px;background:var(--red-dim);border:1px solid var(--red-border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.consent-item-ico svg{width:17px;height:17px;stroke:var(--red);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.consent-item-txt{flex:1}
+.consent-item-t{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.consent-item-d{font-size:11px;color:var(--text2);font-weight:300;line-height:1.5}
+.consent-actions{padding:18px 22px 26px;display:flex;flex-direction:column;gap:10px}
+.consent-accept{width:100%;background:var(--red);border:none;border-radius:14px;padding:16px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .15s}
+.consent-accept:active{opacity:.85}
+.consent-decline{width:100%;background:none;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text2);cursor:pointer}
+.consent-note{font-size:10px;color:var(--text3);text-align:center;line-height:1.5;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="shell">
-  <div class="status">
-    <span class="status-time" id="statusTime">22:14</span>
-    <div class="status-icons">
-      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="4" height="11" rx="1"/><rect x="9" y="4" width="4" height="14" rx="1"/><rect x="16" y="1" width="4" height="17" rx="1"/></svg>
-      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="12" rx="2"/><path d="M22 11v4"/></svg>
-    </div>
-  </div>
   <div class="screen active" id="screen-main">
     <div class="main-header">
       <div class="logo-row">
@@ -251,36 +256,232 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="screen" id="screen-disguise">
     <div class="disguise-inner"><div class="disguise-icon">&#128295;</div><div class="disguise-title">Site under maintenance</div><div class="disguise-sub">We're working on some improvements.<br>Please check back soon.</div><button class="disguise-back" onclick="goBack()">&larr; go back</button></div>
   </div>
+  <div class="screen" id="screen-consent">
+    <div class="info-header">
+      <button class="icon-btn" onclick="goBack()">&larr;</button>
+      <div class="info-title-wrap"><div class="info-h">Emergency &mdash; 112</div><div class="info-sub">CONSENT REQUIRED</div></div>
+    </div>
+    <div class="consent-scroll">
+      <div class="consent-title">Send emergency alert to 112?</div>
+      <div class="consent-sub">To help authorities reach and identify you, SafeOut will collect and transmit the following. Nothing is sent until you tap "Send alert".</div>
+      <div class="consent-item">
+        <div class="consent-item-ico"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div class="consent-item-txt"><div class="consent-item-t">Your location</div><div class="consent-item-d">Precise GPS coordinates so help can find you</div></div>
+      </div>
+      <div class="consent-item">
+        <div class="consent-item-ico"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="consent-item-txt"><div class="consent-item-t">A photo</div><div class="consent-item-d">One photo from your camera to document the situation</div></div>
+      </div>
+      <div class="consent-item">
+        <div class="consent-item-ico"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+        <div class="consent-item-txt"><div class="consent-item-t">Audio recording</div><div class="consent-item-d">A few seconds of ambient audio</div></div>
+      </div>
+      <div class="consent-item" style="border-bottom:none">
+        <div class="consent-item-ico"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+        <div class="consent-item-txt"><div class="consent-item-t">Device metadata</div><div class="consent-item-d">Timestamp and venue ID for the response team</div></div>
+      </div>
+    </div>
+    <div class="consent-actions">
+      <button class="consent-accept" onclick="acceptConsent()">Send alert &amp; share data</button>
+      <button class="consent-decline" onclick="goBack()">Cancel</button>
+      <div class="consent-note">By tapping "Send alert" you consent to SafeOut and emergency services processing this data to assist you. Data is encrypted and handled per GDPR.</div>
+    </div>
+  </div>
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheetOutside(event)">
     <div class="sheet">
       <div class="sheet-handle"></div>
       <div class="sheet-title">Choose a contact to alert</div>
-      <div class="contact-list">
-        <button class="contact-item" onclick="sendToContact('Maria')"><div class="avatar av-a">MA</div><div class="contact-info"><span class="contact-name">Maria Andrei</span><span class="contact-role">Best friend</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
-        <button class="contact-item" onclick="sendToContact('Alex')"><div class="avatar av-b">AV</div><div class="contact-info"><span class="contact-name">Alex Vasile</span><span class="contact-role">Boyfriend</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
-        <button class="contact-item" onclick="sendToContact('Mom')"><div class="avatar av-c">IO</div><div class="contact-info"><span class="contact-name">Ioana Oprea</span><span class="contact-role">Mom</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
-        <button class="contact-item" onclick="sendToContact('Sara')"><div class="avatar av-d">SN</div><div class="contact-info"><span class="contact-name">Sara Nistor</span><span class="contact-role">Roommate</span></div><div class="send-btn"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div></button>
+      <div class="contact-list" id="contactList">
+        <div style="padding:24px 20px;text-align:center;color:var(--text2);font-size:13px;font-weight:300" id="contactHint">
+          Loading your contacts&hellip;
+        </div>
       </div>
     </div>
   </div>
 </div>
 <script>
-const API_BASE='';
-const QR_ID=new URLSearchParams(window.location.search).get('q')||'demo';
-function updateClock(){const n=new Date();document.getElementById('statusTime').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
-updateClock();setInterval(updateClock,30000);
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
-function goBack(){showScreen('screen-main');clearCache();}
-function showInfo(){showScreen('screen-info');}
-let tapCount=0,tapTimer;
-document.querySelector('.logo-img').addEventListener('click',()=>{tapCount++;clearTimeout(tapTimer);if(tapCount>=2){showScreen('screen-disguise');tapCount=0;}else tapTimer=setTimeout(()=>tapCount=0,500);});
-function getLocation(){return new Promise(resolve=>{if(!navigator.geolocation)return resolve({lat:null,lng:null,accuracy:null,method:'unavailable'});navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,method:p.coords.accuracy<50?'gps':'wifi'}),()=>resolve({lat:null,lng:null,accuracy:null,method:'unavailable'}),{enableHighAccuracy:true,timeout:5000,maximumAge:0});});}
-async function sendIncident(type,extra={}){const loc=await getLocation();const payload={situation_type:type,qr_code_id:QR_ID,latitude:loc.lat,longitude:loc.lng,location_accuracy_m:loc.accuracy,location_method:loc.method,...extra};console.log('[SafeOut] Incident payload:',payload);return {id:'mock-'+Date.now(),status:'pending'};}
-function clearCache(){if('caches' in window)caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));sessionStorage.clear();}
-async function showConfirm(type){const configs={escort:{cls:'blue',stroke:'#a0aaff',svgPath:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',title:'Staff has been alerted',sub:'A trained staff member is heading to you. Stay where you are. They will use a code phrase to identify themselves.'},'112':{cls:'red',stroke:'#ff8080',svgPath:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',title:'Alert sent to 112',sub:'Your location and metadata have been sent to emergency services and our dispatch center. Help is on the way.'},contact:{cls:'teal',stroke:'#4ecfaa',svgPath:'<polyline points="20 6 9 17 4 12"/>',title:'Message sent',sub:'Your contact has been alerted with your live location. They will call you as soon as possible.'}};const c=configs[type];const icon=document.getElementById('confirmIcon');icon.className='confirm-icon-wrap '+c.cls;const svg=document.getElementById('confirmSvg');svg.setAttribute('stroke',c.stroke);svg.innerHTML=c.svgPath;document.getElementById('confirmTitle').textContent=c.title;document.getElementById('confirmSub').textContent=c.sub;const now=new Date();document.getElementById('metaTime').textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');document.getElementById('metaVenue').textContent=QR_ID!=='demo'?QR_ID.slice(0,12):'Demo venue';showScreen('screen-confirm');await sendIncident(type==='112'?'emergency':type==='escort'?'escort':'contact');document.getElementById('metaLoc').textContent='Transmitted';}
-function openSheet(){document.getElementById('sheetOverlay').classList.add('open');}
-function closeSheetOutside(e){if(e.target===document.getElementById('sheetOverlay'))document.getElementById('sheetOverlay').classList.remove('open');}
-function sendToContact(name){document.getElementById('sheetOverlay').classList.remove('open');showConfirm('contact');}
+// ============================================================
+//  SafeOut PWA — beneficiary logic
+//  API_BASE: set to your backend URL when ready (e.g. https://api.safeout.ro)
+// ============================================================
+const API_BASE = ''; // TODO: set backend URL
+const QR_ID = new URLSearchParams(window.location.search).get('q') || 'demo';
+
+// ---- Shared incident store (localStorage) so dispatch/admin in the SAME browser can see real actions ----
+// NOTE: this is a frontend-only bridge. Real cross-device sync needs the backend.
+const STORE_KEY = 'safeout_incidents';
+function loadIncidents(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }catch(e){ return []; } }
+function saveIncident(inc){
+  const list = loadIncidents();
+  list.unshift(inc);
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0,200))); }catch(e){}
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goBack(){ showScreen('screen-main'); }
+function showInfo(){ showScreen('screen-info'); }
+
+// ---- Disguise: double-tap the logo ----
+let tapCount=0, tapTimer;
+const logoEl = document.querySelector('.logo-img');
+if(logoEl){
+  logoEl.addEventListener('click',()=>{
+    tapCount++; clearTimeout(tapTimer);
+    if(tapCount>=2){ showScreen('screen-disguise'); tapCount=0; }
+    else tapTimer=setTimeout(()=>tapCount=0,500);
+  });
+}
+
+// ---- Geolocation ----
+function getLocation(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation) return resolve({lat:null,lng:null,accuracy:null,method:'unavailable'});
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,method:p.coords.accuracy<50?'gps':'wifi'}),
+      ()=>resolve({lat:null,lng:null,accuracy:null,method:'unavailable'}),
+      {enableHighAccuracy:true,timeout:5000,maximumAge:0}
+    );
+  });
+}
+
+// ---- Camera permission + capture (returns true if granted) ----
+async function requestCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    // We got permission. Stop tracks immediately (we don't upload in the frontend-only demo).
+    stream.getTracks().forEach(t=>t.stop());
+    return true;
+  }catch(e){ return false; }
+}
+
+// ---- Microphone permission ----
+async function requestMic(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=>t.stop());
+    return true;
+  }catch(e){ return false; }
+}
+
+// ---- Record an incident (real, saved locally so dispatch can see it) ----
+async function recordIncident(type, extra){
+  const loc = await getLocation();
+  const inc = {
+    id: 'so-' + Date.now().toString(36),
+    situation_type: type,           // 'emergency' | 'escort' | 'contact'
+    qr_code_id: QR_ID,
+    latitude: loc.lat,
+    longitude: loc.lng,
+    location_accuracy_m: loc.accuracy,
+    location_method: loc.method,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    ...(extra||{})
+  };
+  saveIncident(inc);
+  // TODO: when backend is ready:
+  // await fetch(`${API_BASE}/incidents`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inc)});
+  return inc;
+}
+
+// ---- Confirmation screen ----
+function paintConfirm(type){
+  const configs = {
+    escort:{cls:'blue',stroke:'#a0aaff',svgPath:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',title:'Staff has been alerted',sub:'A trained staff member is heading to you. Stay where you are. They will use a code phrase to identify themselves.'},
+    emergency:{cls:'red',stroke:'#ff8080',svgPath:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',title:'Alert sent to 112',sub:'Your location and metadata have been sent to emergency services and our dispatch center. Help is on the way.'},
+    contact:{cls:'teal',stroke:'#4ecfaa',svgPath:'<polyline points="20 6 9 17 4 12"/>',title:'Contact alerted',sub:'Your chosen contact has been recorded. Our dispatch team can see your request.'}
+  };
+  const c = configs[type] || configs.escort;
+  const icon = document.getElementById('confirmIcon');
+  icon.className = 'confirm-icon-wrap ' + c.cls;
+  const svg = document.getElementById('confirmSvg');
+  svg.setAttribute('stroke', c.stroke);
+  svg.innerHTML = c.svgPath;
+  document.getElementById('confirmTitle').textContent = c.title;
+  document.getElementById('confirmSub').textContent = c.sub;
+  const now = new Date();
+  document.getElementById('metaTime').textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('metaVenue').textContent = QR_ID!=='demo' ? QR_ID.slice(0,14) : 'Demo venue';
+  showScreen('screen-confirm');
+}
+
+// ---- Escort button ----
+async function showConfirm(type){
+  if(type === '112'){ showScreen('screen-consent'); return; } // 112 goes through consent first
+  paintConfirm(type);
+  document.getElementById('metaLoc').textContent = 'Acquiring…';
+  const inc = await recordIncident(type === 'escort' ? 'escort' : type);
+  document.getElementById('metaLoc').textContent = inc.latitude ? 'Transmitted' : 'Unavailable';
+}
+
+// ---- 112 consent accepted ----
+async function acceptConsent(){
+  paintConfirm('emergency');
+  document.getElementById('metaLoc').textContent = 'Requesting permissions…';
+  // Request camera + mic permissions (browser shows native dialogs)
+  const cam = await requestCamera();
+  const mic = await requestMic();
+  const inc = await recordIncident('emergency', {
+    consent_given: true,
+    camera_granted: cam,
+    mic_granted: mic,
+    has_front_photo: cam,
+    has_audio_recording: mic
+  });
+  document.getElementById('metaLoc').textContent = inc.latitude ? 'Transmitted' : 'Sent (no GPS)';
+}
+
+// ---- Call somebody: Contact Picker API (Android Chrome) ----
+function openSheet(){
+  const overlay = document.getElementById('sheetOverlay');
+  overlay.classList.add('open');
+  loadContactsIntoSheet();
+}
+function closeSheetOutside(e){
+  if(e.target===document.getElementById('sheetOverlay')) document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+async function loadContactsIntoSheet(){
+  const listEl = document.getElementById('contactList');
+  // Check Contact Picker API support (Android Chrome / Edge)
+  const supported = ('contacts' in navigator && 'ContactsManager' in window);
+  if(!supported){
+    listEl.innerHTML = `<div style="padding:22px 20px;text-align:center;color:var(--text2);font-size:13px;font-weight:300;line-height:1.6">
+      Your device doesn't support picking contacts directly from the browser.<br><br>
+      <span style="color:var(--text3);font-size:12px">On Android Chrome you'll see your real contacts here. On iPhone, this feature isn't available yet.</span>
+    </div>`;
+    return;
+  }
+  listEl.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text2);font-size:13px">Tap below to choose from your contacts</div>
+    <button class="contact-item" onclick="pickContact()" style="justify-content:center;color:var(--teal)">
+      <div class="contact-info" style="flex:none"><span class="contact-name" style="color:var(--teal)">Open my contacts</span></div>
+    </button>`;
+}
+
+async function pickContact(){
+  try{
+    const props = ['name','tel'];
+    const opts = {multiple:false};
+    const contacts = await navigator.contacts.select(props, opts);
+    if(contacts && contacts.length){
+      const chosen = contacts[0];
+      const name = (chosen.name && chosen.name[0]) || 'Contact';
+      // Record the action to dispatch — but DO NOT send any message
+      document.getElementById('sheetOverlay').classList.remove('open');
+      paintConfirm('contact');
+      document.getElementById('metaLoc').textContent = 'Acquiring…';
+      const inc = await recordIncident('contact', { contact_name: name });
+      document.getElementById('metaLoc').textContent = inc.latitude ? 'Recorded' : 'Recorded (no GPS)';
+    }
+  }catch(e){
+    // user cancelled or error
+    document.getElementById('sheetOverlay').classList.remove('open');
+  }
+}
+
 </script>
 </body>
 </html>
