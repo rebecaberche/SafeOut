@@ -293,6 +293,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 const API_BASE = ''; // TODO: set backend URL
 const QR_ID = new URLSearchParams(window.location.search).get('q') || 'demo';
 
+// Look up this QR's stored info (venue, exact coordinates, placement/cabin).
+// BACKEND: replace with GET `${API_BASE}/qr-codes/${QR_ID}` which returns venue+coords+placement.
+function getQRInfo(){
+  try{
+    const codes = JSON.parse(localStorage.getItem('safeout_qrcodes')) || [];
+    return codes.find(q => q.code === QR_ID) || null;
+  }catch(e){ return null; }
+}
+const QR_INFO = getQRInfo();
+
 // ---- Shared incident store (localStorage) so dispatch/admin in the SAME browser can see real actions ----
 // NOTE: this is a frontend-only bridge. Real cross-device sync needs the backend.
 const STORE_KEY = 'safeout_incidents';
@@ -409,12 +419,21 @@ function saveEvidence(incidentId, photos, audio){
 
 async function recordIncident(type, extra){
   extra = extra || {};
-  const loc = extra._preloc || await getLocation();
+  let loc;
+  if(QR_INFO && QR_INFO.lat && QR_INFO.lng){
+    // This QR is assigned to a fixed venue → use its exact coordinates, not GPS.
+    loc = { lat: QR_INFO.lat, lng: QR_INFO.lng, accuracy: 5, method: 'qr_fixed' };
+  } else {
+    // Street/public QR → fall back to the phone's GPS.
+    loc = extra._preloc || await getLocation();
+  }
   delete extra._preloc;
   const inc = {
     id: 'so-' + Date.now().toString(36),
     situation_type: type,           // 'emergency' | 'escort' | 'contact'
     qr_code_id: QR_ID,
+    venue_name: QR_INFO ? QR_INFO.venue : null,
+    placement: QR_INFO ? QR_INFO.placement : null,
     latitude: loc.lat,
     longitude: loc.lng,
     location_accuracy_m: loc.accuracy,

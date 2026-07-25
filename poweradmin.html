@@ -241,7 +241,13 @@ function renderDispatchers(){document.getElementById('dispatchersTable').innerHT
 function renderQR(){
   const grid=document.getElementById('qrGrid');
   if(!QRCODES.length){ grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No QR codes yet. Click "Generate QR" to create one for a venue.</div>'; return; }
-  grid.innerHTML=QRCODES.map((q,i)=>'<div class="qr-card"><div class="qr-visual" id="qrimg-'+i+'"></div><div class="qr-code-label">'+q.code+'</div><div class="qr-venue">'+q.venue+' &middot; '+q.placement+'</div><div class="qr-scans">'+(q.scans||0)+' scans</div><button class="table-action" onclick="downloadQR('+i+')">Download PNG</button></div>').join('');
+  grid.innerHTML=QRCODES.map((q,i)=>{
+    const locBadge = (q.lat&&q.lng)
+      ? '<div style="font-size:9px;color:var(--teal);margin-bottom:8px">&#128205; Fixed location</div>'
+      : '<div style="font-size:9px;color:var(--text3);margin-bottom:8px">&#128225; GPS (street)</div>';
+    const place = q.placement ? ('<div class="qr-venue">'+q.placement+'</div>') : '';
+    return '<div class="qr-card"><div class="qr-visual" id="qrimg-'+i+'"></div><div class="qr-code-label">'+q.code+'</div><div class="qr-venue">'+q.venue+'</div>'+place+locBadge+'<div class="qr-scans">'+(q.scans||0)+' scans</div><button class="table-action" onclick="downloadQR('+i+')">Download PNG</button></div>';
+  }).join('');
   // Render real QR codes into each slot
   QRCODES.forEach((q,i)=>{
     const el=document.getElementById('qrimg-'+i);
@@ -316,13 +322,13 @@ function renderCharts(incidents){
 const MODAL_CONFIG={
   venue:{title:'Add venue',sub:'Register a new partner location',fields:[['Venue name','text','name'],['Type','text','bar / hotel / transport / mall'],['City','text','Oradea'],['Address','text','Str. Republicii 5']]},
   dispatcher:{title:'Add dispatcher',sub:'Create a new dispatcher account',fields:[['Full name','text','Full name'],['Email','email','user@admin.ro'],['Role','text','dispatcher / supervisor'],['Temporary password','password','']]},
-  qr:{title:'Generate QR code',sub:'Create a new QR for a venue location',fields:[['Venue','text','Venue name'],['Placement','text','Baie femei, cabina 2'],['Short code','text','auto-generated']]}
+  qr:{title:'Generate QR code',sub:'Create a QR for a specific spot. Add an address to pin it exactly; leave blank for street/public QRs (GPS-based).',fields:[['Venue name','text','Club Neptun'],['Address (optional)','text','Str. Republicii 5, Oradea'],['Placement / cabin','text','Baie femei, cabina 2'],['Short code (optional)','text','auto-generated']]}
 };
 let currentModalType = null;
 function openModal(type){currentModalType=type;const cfg=MODAL_CONFIG[type];document.getElementById('modalTitle').textContent=cfg.title;document.getElementById('modalSub').textContent=cfg.sub;document.getElementById('modalFields').innerHTML=cfg.fields.map((f,idx)=>'<div class="field"><label>'+f[0]+'</label><input id="mf-'+idx+'" type="'+f[1]+'" placeholder="'+f[2]+'"></div>').join('');document.getElementById('modalOverlay').classList.add('open');}
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
 function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
-function submitModal(){
+async function submitModal(){
   const get=(i)=>{const el=document.getElementById('mf-'+i);return el?el.value.trim():'';};
   if(currentModalType==='venue'){
     const name=get(0);
@@ -341,15 +347,44 @@ function submitModal(){
     alert('Dispatcher created. They can now sign in at the Dispatch Center with:\n\nEmail: '+email+'\nPassword: '+pass+'\n\n(Share these credentials securely.)');
   }
   else if(currentModalType==='qr'){
-    const venue=get(0);
-    if(!venue){ alert('Venue is required'); return; }
-    const code=get(2)||('SO-'+Math.random().toString(36).slice(2,6).toUpperCase());
-    QRCODES.push({code,venue,placement:get(1)||'',scans:0,active:true});
+    const venue=get(0), address=get(1), placement=get(2), shortInput=get(3);
+    if(!venue){ alert('Venue name is required'); return; }
+    const code=shortInput||('SO-'+Math.random().toString(36).slice(2,6).toUpperCase());
+    // If an address is given, geocode it so the QR carries exact coordinates.
+    if(address){
+      const btn=document.querySelector('.modal-btn.primary');
+      const old=btn?btn.textContent:''; if(btn){ btn.textContent='Finding address…'; btn.disabled=true; }
+      const geo = await geocodeAddress(venue+' '+address);
+      if(btn){ btn.textContent=old; btn.disabled=false; }
+      if(!geo){
+        if(!confirm('Could not find that address on the map. Generate the QR anyway (it will use the phone GPS instead)?')){ return; }
+        QRCODES.push({code,venue,address,placement:placement||'',lat:null,lng:null,scans:0,active:true});
+      } else {
+        QRCODES.push({code,venue,address:geo.display||address,placement:placement||'',lat:geo.lat,lng:geo.lng,scans:0,active:true});
+        alert('Location found and pinned:\n'+(geo.display||address)+'\n\nThis QR will always report this exact spot.');
+      }
+    } else {
+      // No address → street/public QR, uses phone GPS.
+      QRCODES.push({code,venue,address:'',placement:placement||'',lat:null,lng:null,scans:0,active:true});
+    }
     renderQR();
   }
   // BACKEND: POST to /venues, /dispatchers or /qr-codes depending on currentModalType
   persistAll();
   closeModal(); renderDashboard();
+}
+
+// Geocode an address/venue name into coordinates via OpenStreetMap Nominatim (free).
+async function geocodeAddress(query){
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(query);
+    const r=await fetch(url,{headers:{'Accept':'application/json'}});
+    const data=await r.json();
+    if(data && data.length){
+      return { lat:parseFloat(data[0].lat), lng:parseFloat(data[0].lon), display:data[0].display_name };
+    }
+  }catch(e){}
+  return null;
 }
 function editItem(){ /* editing UI comes with backend */ }
 function mockExport(fmt){ alert('Export '+fmt+' — requires the backend to generate the file.'); }
