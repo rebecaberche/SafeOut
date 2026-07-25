@@ -354,7 +354,7 @@ async function submitModal(){
     if(address){
       const btn=document.querySelector('.modal-btn.primary');
       const old=btn?btn.textContent:''; if(btn){ btn.textContent='Finding address…'; btn.disabled=true; }
-      const geo = await geocodeAddress(venue+' '+address);
+      const geo = await geocodeAddress(address, venue);
       if(btn){ btn.textContent=old; btn.disabled=false; }
       if(!geo){
         if(!confirm('Could not find that address on the map. Generate the QR anyway (it will use the phone GPS instead)?')){ return; }
@@ -374,16 +374,46 @@ async function submitModal(){
   closeModal(); renderDashboard();
 }
 
-// Geocode an address/venue name into coordinates via OpenStreetMap Nominatim (free).
-async function geocodeAddress(query){
+// Geocode via OpenStreetMap Nominatim (free). Tries several query forms for reliability.
+async function geocodeOne(query){
+  // Try Nominatim (OpenStreetMap) first
   try{
-    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(query);
+    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ro&q='+encodeURIComponent(query);
     const r=await fetch(url,{headers:{'Accept':'application/json'}});
-    const data=await r.json();
-    if(data && data.length){
-      return { lat:parseFloat(data[0].lat), lng:parseFloat(data[0].lon), display:data[0].display_name };
+    if(r.ok){
+      const data=await r.json();
+      if(data && data.length){
+        return { lat:parseFloat(data[0].lat), lng:parseFloat(data[0].lon), display:data[0].display_name };
+      }
     }
   }catch(e){}
+  // Fallback: Photon (Komoot)
+  try{
+    const url='https://photon.komoot.io/api/?limit=1&lang=en&q='+encodeURIComponent(query);
+    const r=await fetch(url);
+    if(r.ok){
+      const data=await r.json();
+      if(data && data.features && data.features.length){
+        const f=data.features[0]; const co=f.geometry.coordinates;
+        const p=f.properties||{};
+        const disp=[p.name,p.street,p.housenumber,p.city,p.country].filter(Boolean).join(', ');
+        return { lat:co[1], lng:co[0], display:disp||query };
+      }
+    }
+  }catch(e){}
+  return null;
+}
+async function geocodeAddress(address, venue){
+  // Try the address alone first (most reliable), then venue+address, then venue alone.
+  const tries = [];
+  if(address) tries.push(address);
+  if(venue && address) tries.push(venue+', '+address);
+  if(venue) tries.push(venue);
+  for(const q of tries){
+    const res = await geocodeOne(q);
+    if(res) return res;
+    await new Promise(r=>setTimeout(r,300)); // be polite to the free service
+  }
   return null;
 }
 function editItem(){ /* editing UI comes with backend */ }
