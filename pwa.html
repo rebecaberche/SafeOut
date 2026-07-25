@@ -307,10 +307,16 @@ const QR_INFO = getQRInfo();
 // NOTE: this is a frontend-only bridge. Real cross-device sync needs the backend.
 const STORE_KEY = 'safeout_incidents';
 function loadIncidents(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }catch(e){ return []; } }
+// Broadcast channel to notify the dispatch center instantly (same browser, cross-tab).
+let _bc = null;
+try{ _bc = new BroadcastChannel('safeout'); }catch(e){}
+function notifyDispatch(){ try{ if(_bc) _bc.postMessage('incident_update'); }catch(e){} }
+
 function saveIncident(inc){
   const list = loadIncidents();
   list.unshift(inc);
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(list.slice(0,200))); }catch(e){}
+  notifyDispatch();
 }
 
 function showScreen(id){
@@ -393,6 +399,7 @@ function recordContactPing(){
   const KEY='safeout_contact_count';
   let n=0; try{ n=parseInt(localStorage.getItem(KEY))||0; }catch(e){}
   try{ localStorage.setItem(KEY, String(n+1)); }catch(e){}
+  notifyDispatch();
   // BACKEND: await fetch(`${API_BASE}/contact-pings`,{method:'POST'}); // no body — anonymous count only
 }
 

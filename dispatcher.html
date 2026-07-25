@@ -324,4 +324,18 @@ function renderMapList(){
   document.getElementById('mapIncidentList').innerHTML=active.length?active.map(i=>{const m=TYPE_META[i.type]||TYPE_META.escort;return '<div class="incident-card '+m.color+'" style="margin-bottom:8px;cursor:default"><div class="inc-top"><div class="inc-type"><span>'+m.icon+'</span><span class="inc-type-label">'+m.label+'</span><span class="badge '+m.color+'">'+i.status+'</span></div><span class="inc-time">'+i.ago+'</span></div><div class="inc-meta"><div class="inc-meta-item">'+i.venue+'</div></div>'+(i.lat?'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">'+i.lat.toFixed(4)+', '+i.lng.toFixed(4)+'</div></div>':'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">No GPS location</div></div>')+'</div>';}).join(''):'<div style="text-align:center;color:var(--text3);padding:48px 0;font-size:13px">No active incidents on map</div>';}
 function addAudit(action,color,detail){auditEntries.unshift({action,color,detail,time:new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})});}
 function renderAuditLog(){const el=document.getElementById('auditLog');if(!auditEntries.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No actions yet this session</div>';return;}el.innerHTML=auditEntries.map(e=>'<div class="log-item"><div class="log-dot '+e.color+'"></div><div class="log-body"><div class="log-action">'+e.action+'</div><div class="log-meta">'+e.detail+' &middot; '+e.time+'</div></div></div>').join('');}
+function refreshView(){
+  if(!currentUser) return;
+  const active=document.querySelector('.page.active'); const id=active?active.id:'';
+  if(id==='page-live') renderIncidents();
+  else if(id==='page-history') renderHistory();
+  else if(id==='page-map') renderMapList();
+  else if(id==='page-audit') renderAuditLog();
+  else renderIncidents();
+}
+window.addEventListener('storage',(e)=>{ if(e.key==='safeout_incidents'||e.key==='safeout_contact_count'){ refreshView(); } });
+try{ const _bc=new BroadcastChannel('safeout'); _bc.onmessage=(ev)=>{ if(ev.data==='incident_update') refreshView(); }; }catch(e){}
+let _lastSnapshot='';
+setInterval(()=>{ if(!currentUser) return; let snap=''; try{ snap=(localStorage.getItem('safeout_incidents')||'')+'|'+(localStorage.getItem('safeout_contact_count')||''); }catch(e){} if(snap!==_lastSnapshot){ _lastSnapshot=snap; refreshView(); } }, 2000);
+// BACKEND (realtime): replace triggers above with a WebSocket → refreshView().
 document.addEventListener('DOMContentLoaded',()=>{const p=document.getElementById('loginPass');if(p)p.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});});</script></body></html>

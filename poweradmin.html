@@ -419,6 +419,19 @@ async function geocodeAddress(address, venue){
 function editItem(){ /* editing UI comes with backend */ }
 function mockExport(fmt){ alert('Export '+fmt+' — requires the backend to generate the file.'); }
 
+// INSTANT UPDATES — evidence + stats refresh the moment the PWA writes new data.
+function refreshPA(){
+  const active=document.querySelector('.page.active'); const id=active?active.id:'';
+  if(id==='page-dashboard') renderDashboard();
+  else if(id==='page-evidence') renderEvidence();
+  else if(id==='page-analytics') renderDashboard();
+}
+window.addEventListener('storage',(e)=>{ if(e.key && e.key.indexOf('safeout_')===0) refreshPA(); });
+try{ const _bc=new BroadcastChannel('safeout'); _bc.onmessage=(ev)=>{ if(ev.data==='incident_update') refreshPA(); }; }catch(e){}
+let _paSnap='';
+setInterval(()=>{ let s=''; try{ s=(localStorage.getItem('safeout_incidents')||'')+'|'+(localStorage.getItem('safeout_evidence')||''); }catch(e){} if(s!==_paSnap){ _paSnap=s; refreshPA(); } }, 2000);
+// BACKEND (realtime): replace with WebSocket push → refreshPA().
+
 document.addEventListener('DOMContentLoaded',()=>{
   const p=document.getElementById('loginPass');
   if(p) p.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
