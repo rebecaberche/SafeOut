@@ -334,22 +334,47 @@ function getLocation(){
 }
 
 // ---- Camera permission + capture (returns true if granted) ----
-async function requestCamera(){
+// Capture a photo from a given camera (facingMode). Returns base64 JPEG or null.
+async function capturePhoto(facing){
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    // We got permission. Stop tracks immediately (we don't upload in the frontend-only demo).
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:facing}});
+    const video = document.createElement('video');
+    video.srcObject = stream; video.setAttribute('playsinline','');
+    await video.play();
+    // give the camera a moment to expose/focus
+    await new Promise(r=>setTimeout(r,600));
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);
     stream.getTracks().forEach(t=>t.stop());
-    return true;
-  }catch(e){ return false; }
+    return canvas.toDataURL('image/jpeg', 0.7);
+  }catch(e){ return null; }
 }
 
-// ---- Microphone permission ----
-async function requestMic(){
+// Capture front + back photos. Returns {front, back} base64 strings (either may be null).
+async function captureBothPhotos(){
+  const back = await capturePhoto('environment');
+  const front = await capturePhoto('user');
+  return { back, front };
+}
+
+// Record a few seconds of audio. Returns base64 (data URL) or null.
+async function captureAudio(seconds){
   try{
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const rec = new MediaRecorder(stream);
+    const chunks = [];
+    rec.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
+    const done = new Promise(resolve=>{ rec.onstop = ()=>resolve(); });
+    rec.start();
+    await new Promise(r=>setTimeout(r, (seconds||5)*1000));
+    rec.stop();
+    await done;
     stream.getTracks().forEach(t=>t.stop());
-    return true;
-  }catch(e){ return false; }
+    const blob = new Blob(chunks, {type: chunks[0] ? chunks[0].type : 'audio/webm'});
+    return await new Promise(resolve=>{ const fr=new FileReader(); fr.onloadend=()=>resolve(fr.result); fr.readAsDataURL(blob); });
+  }catch(e){ return null; }
 }
 
 // ---- Record an incident (real, saved locally so dispatch can see it) ----
@@ -359,6 +384,27 @@ function recordContactPing(){
   let n=0; try{ n=parseInt(localStorage.getItem(KEY))||0; }catch(e){}
   try{ localStorage.setItem(KEY, String(n+1)); }catch(e){}
   // BACKEND: await fetch(`${API_BASE}/contact-pings`,{method:'POST'}); // no body — anonymous count only
+}
+
+// Save captured evidence (photos + audio) to local store, linked to the incident.
+// BACKEND: upload these to /incidents/:id/evidence which stores them on Google Drive.
+function saveEvidence(incidentId, photos, audio){
+  const KEY='safeout_evidence';
+  let list=[]; try{ list=JSON.parse(localStorage.getItem(KEY))||[]; }catch(e){}
+  const now=new Date();
+  const expires=new Date(now.getTime()+90*24*3600*1000); // 90-day FIFO
+  const add=(type,dataUrl)=>{ if(!dataUrl) return; list.unshift({
+    id:'ev-'+Math.random().toString(36).slice(2,9),
+    incident_id:incidentId, file_type:type,
+    data:dataUrl,
+    uploaded:now.toISOString().slice(0,10),
+    expires:expires.toISOString().slice(0,10),
+    legal_hold:false
+  }); };
+  add('photo', photos.back);
+  add('photo', photos.front);
+  add('audio', audio);
+  try{ localStorage.setItem(KEY, JSON.stringify(list.slice(0,60))); }catch(e){}
 }
 
 async function recordIncident(type, extra){
@@ -476,13 +522,23 @@ async function acceptConsent(){
   }
   if(type === '112'){
     paintConfirm('emergency');
-    document.getElementById('metaLoc').textContent = 'Requesting permissions…';
-    const cam = await requestCamera();
-    const mic = await requestMic();
+    document.getElementById('metaLoc').textContent = 'Capturing photos…';
+    // Capture front + back photos (real)
+    const photos = await captureBothPhotos();
+    document.getElementById('metaLoc').textContent = 'Recording audio…';
+    // Record a few seconds of audio (real)
+    const audio = await captureAudio(5);
+    document.getElementById('metaLoc').textContent = 'Sending…';
     const inc = await recordIncident('emergency', {
-      consent_given:true, camera_granted:cam, mic_granted:mic,
-      has_front_photo:cam, has_audio_recording:mic
+      consent_given:true,
+      camera_granted: !!(photos.front || photos.back),
+      mic_granted: !!audio,
+      has_front_photo: !!photos.front,
+      has_back_photo: !!photos.back,
+      has_audio_recording: !!audio
     });
+    // Save evidence files linked to this incident (stored locally until backend)
+    saveEvidence(inc.id, photos, audio);
     document.getElementById('metaLoc').textContent = inc.latitude ? 'Transmitted' : 'Sent (no GPS)';
     return;
   }

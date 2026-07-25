@@ -263,7 +263,34 @@ function downloadQR(i){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function renderEvidence(){document.getElementById('evidenceTable').innerHTML=EVIDENCE.length?EVIDENCE.map(e=>'<tr><td class="cell-main">'+e.incident+'</td><td style="text-transform:capitalize">'+e.type+'</td><td style="color:var(--text2)">'+e.uploaded+'</td><td style="color:var(--text2)">'+e.expires+'</td><td>'+(e.hold?'<span class="status-pill active">Legal hold</span>':'<span class="status-pill inactive">None</span>')+'</td><td><button class="table-action" onclick="editItem()">'+(e.hold?'Release':'Hold')+'</button></td></tr>').join(''):empty('No evidence files yet. They appear here when incidents with photos/audio come in.');}
+function renderEvidence(){
+  // Re-read fresh from storage (PWA writes evidence separately)
+  EVIDENCE = _load('safeout_evidence', []);
+  const rows = EVIDENCE.map((e,i)=>{
+    const hold = e.legal_hold;
+    const inc = (e.incident_id||e.incident||'—');
+    const type = (e.file_type||e.type||'file');
+    const viewBtn = e.data
+      ? (type==='audio'
+          ? '<button class="table-action" onclick="playEvidence('+i+')">Play</button>'
+          : '<button class="table-action" onclick="viewEvidence('+i+')">View</button>')
+      : '';
+    return '<tr><td class="cell-main">'+inc.slice(0,12)+'</td><td style="text-transform:capitalize">'+type+'</td><td style="color:var(--text2)">'+(e.uploaded||'')+'</td><td style="color:var(--text2)">'+(e.expires||'')+'</td><td>'+(hold?'<span class="status-pill active">Legal hold</span>':'<span class="status-pill inactive">None</span>')+'</td><td>'+viewBtn+'<button class="table-action" onclick="toggleHold('+i+')">'+(hold?'Release':'Hold')+'</button></td></tr>';
+  });
+  document.getElementById('evidenceTable').innerHTML = rows.length ? rows.join('') : empty('No evidence files yet. They appear here when incidents with photos/audio come in.');
+}
+function viewEvidence(i){
+  const e=EVIDENCE[i]; if(!e||!e.data) return;
+  const w=window.open('');
+  if(w) w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+e.data+'" style="max-width:100%;max-height:100vh"></body>');
+}
+function playEvidence(i){
+  const e=EVIDENCE[i]; if(!e||!e.data) return;
+  const a=new Audio(e.data); a.play();
+}
+function toggleHold(i){
+  if(EVIDENCE[i]){ EVIDENCE[i].legal_hold = !EVIDENCE[i].legal_hold; _save('safeout_evidence',EVIDENCE); renderEvidence(); }
+}
 
 function renderCharts(incidents){
   // Build a simple weekly count from real incidents (last 8 weeks)
