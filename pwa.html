@@ -368,7 +368,9 @@ async function requestMic(){
 
 // ---- Record an incident (real, saved locally so dispatch can see it) ----
 async function recordIncident(type, extra){
-  const loc = await getLocation();
+  extra = extra || {};
+  const loc = extra._preloc || await getLocation();
+  delete extra._preloc;
   const inc = {
     id: 'so-' + Date.now().toString(36),
     situation_type: type,           // 'emergency' | 'escort' | 'contact'
@@ -382,8 +384,7 @@ async function recordIncident(type, extra){
     ...(extra||{})
   };
   saveIncident(inc);
-  // TODO: when backend is ready:
-  // await fetch(`${API_BASE}/incidents`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inc)});
+  // BACKEND: await fetch(`${API_BASE}/incidents`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inc)});
   return inc;
 }
 
@@ -469,15 +470,35 @@ async function pickContact(){
     if(contacts && contacts.length){
       const chosen = contacts[0];
       const name = (chosen.name && chosen.name[0]) || 'Contact';
-      // Record the action to dispatch — but DO NOT send any message
+      const tel = (chosen.tel && chosen.tel[0]) ? chosen.tel[0].replace(/\s+/g,'') : '';
       document.getElementById('sheetOverlay').classList.remove('open');
       paintConfirm('contact');
-      document.getElementById('metaLoc').textContent = 'Acquiring…';
-      const inc = await recordIncident('contact', { contact_name: name });
-      document.getElementById('metaLoc').textContent = inc.latitude ? 'Recorded' : 'Recorded (no GPS)';
+      document.getElementById('metaLoc').textContent = 'Getting your location…';
+
+      // Get location first so we can include it in the message
+      const loc = await getLocation();
+
+      // Record to dispatch (real, stored locally)
+      const inc = await recordIncident('contact', {
+        contact_name: name,
+        contact_tel: tel,
+        _preloc: loc  // pass so recordIncident doesn't refetch
+      });
+      document.getElementById('metaLoc').textContent = loc.lat ? 'Location shared' : 'Sent (no GPS)';
+
+      // Build the SMS body with location + Google Maps link
+      let mapsLink = '';
+      if(loc.lat && loc.lng){ mapsLink = ' My location: https://maps.google.com/?q=' + loc.lat + ',' + loc.lng; }
+      const body = 'Am nevoie sa ma suni ACUM. Sunt intr-o situatie in care nu ma simt in siguranta.' + mapsLink + ' (Trimis prin SafeOut)';
+
+      // Open the SMS app pre-filled — one tap to send (browsers don't allow full auto-send)
+      if(tel){
+        const smsHref = 'sms:' + tel + (/(iPhone|iPad|Macintosh)/.test(navigator.userAgent) ? '&' : '?') + 'body=' + encodeURIComponent(body);
+        // Small delay so the confirm screen paints first
+        setTimeout(()=>{ window.location.href = smsHref; }, 600);
+      }
     }
   }catch(e){
-    // user cancelled or error
     document.getElementById('sheetOverlay').classList.remove('open');
   }
 }

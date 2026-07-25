@@ -154,7 +154,11 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 //  SafeOut — Dispatch Center
 //  Secure login (frontend demo). Real incidents read from shared store.
 // ============================================================
-const API_BASE = ''; // TODO: backend URL
+const API_BASE = ''; // TODO: set backend URL, e.g. 'https://api.safeout.ro'
+let authToken = null; // set from POST /auth/login response
+function authHeaders(){ return { 'Content-Type':'application/json', ...(authToken?{'Authorization':'Bearer '+authToken}:{}) }; }
+// BACKEND: replace getIncidents() localStorage with:
+// async function fetchIncidents(){ const r=await fetch(`${API_BASE}/incidents?status=pending,acknowledged`,{headers:authHeaders()}); return (await r.json()).map(toDisplay); }
 
 // ---- Authorised users (frontend demo). Password stored as Base64. ----
 // NOTE: this is NOT real security — anyone can read it in the source.
@@ -215,13 +219,28 @@ updateClock();setInterval(updateClock,30000);
 function doLogin(){
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPass').value;
-  const match = AUTHORISED.find(u => u.email.toLowerCase() === email);
-  const ok = match && btoa(pass) === match.pass_b64;
+  // Check hardcoded admin first
+  let match = AUTHORISED.find(u => u.email.toLowerCase() === email);
+  let ok = match && btoa(pass) === match.pass_b64;
+  // Also check dispatchers created in PowerAdmin (stored in localStorage)
+  if(!ok){
+    let created = [];
+    try{ created = JSON.parse(localStorage.getItem('safeout_dispatchers')) || []; }catch(e){}
+    const d = created.find(u => (u.email||'').toLowerCase() === email && u.active !== false);
+    if(d && d.pass_b64 && btoa(pass) === d.pass_b64){
+      match = { email:d.email, full_name:d.name, role:d.role || 'dispatcher' };
+      ok = true;
+    }
+  }
   if(!ok){
     const err = document.getElementById('loginError');
     if(err){ err.style.display='block'; }
     return;
   }
+  // BACKEND: replace the checks above with:
+  // const r = await fetch(`${API_BASE}/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+  // if(!r.ok){ document.getElementById('loginError').style.display='block'; return; }
+  // const data = await r.json(); authToken = data.access_token; currentUser = data.dispatcher;
   currentUser = match;
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appShell').classList.remove('hidden');
@@ -260,9 +279,15 @@ function incidentCardHTML(inc){
   return '<div class="incident-card '+m.color+' '+(inc.status==='resolved'?'resolved':'')+'" id="card-'+inc.id+'"><div class="inc-top"><div class="inc-type"><span class="inc-type-icon">'+m.icon+'</span><span class="inc-type-label">'+m.label+'</span><span class="badge '+m.color+'">'+inc.status.toUpperCase()+'</span></div><span class="inc-time">'+inc.ago+'</span></div><div class="inc-meta"><div class="inc-meta-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'+inc.venue+'</div><div class="inc-meta-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>QR: '+inc.qr+'</div></div>'+(inc.message?'<div class="inc-msg">"'+inc.message+'"</div>':'')+'<div class="inc-actions">'+(isPending?'<button class="inc-btn primary" onclick="acknowledgeInc(\''+inc.id+'\')">Acknowledge</button>':'')+'<button class="inc-btn danger" onclick="call112(\''+inc.id+'\')">Call 112</button><button class="inc-btn success" onclick="resolveInc(\''+inc.id+'\')">Resolve</button><button class="inc-btn secondary" onclick="toggleNotes(\''+inc.id+'\')">Notes</button></div><div id="notes-'+inc.id+'" style="display:none;margin-top:8px"><textarea class="notes-area" placeholder="Add operational notes..." id="notesText-'+inc.id+'"></textarea><button class="notes-submit" onclick="saveNotes(\''+inc.id+'\')">Save note</button></div></div>';
 }
 
-function acknowledgeInc(id){updateStoreStatus(id,'acknowledged');renderIncidents();addAudit('Acknowledged','amber','Incident '+id.slice(-6)+' taken');}
-function resolveInc(id){updateStoreStatus(id,'resolved');renderIncidents();addAudit('Resolved','teal','Incident '+id.slice(-6)+' closed');}
-function call112(id){addAudit('Called 112','red','Emergency services notified for '+id.slice(-6));alert('112 — Emergency services notified. Document the outcome in Notes.');}
+function acknowledgeInc(id){updateStoreStatus(id,'acknowledged');renderIncidents();addAudit('Acknowledged','amber','Incident '+id.slice(-6)+' taken');
+  // BACKEND: await fetch(`${API_BASE}/incidents/${id}`,{method:'PATCH',headers:authHeaders(),body:JSON.stringify({status:'acknowledged'})});
+}
+function resolveInc(id){updateStoreStatus(id,'resolved');renderIncidents();addAudit('Resolved','teal','Incident '+id.slice(-6)+' closed');
+  // BACKEND: await fetch(`${API_BASE}/incidents/${id}`,{method:'PATCH',headers:authHeaders(),body:JSON.stringify({status:'resolved'})});
+}
+function call112(id){addAudit('Called 112','red','Emergency services notified for '+id.slice(-6));alert('112 — Emergency services notified. Document the outcome in Notes.');
+  // BACKEND: await fetch(`${API_BASE}/incidents/${id}/actions`,{method:'POST',headers:authHeaders(),body:JSON.stringify({action_type:'called_112'})});
+}
 function toggleNotes(id){const el=document.getElementById('notes-'+id);el.style.display=el.style.display==='none'?'block':'none';}
 function saveNotes(id){const text=document.getElementById('notesText-'+id).value.trim();if(!text)return;addAudit('Note added','blue','"'+text.slice(0,40)+(text.length>40?'\u2026':'')+'"');document.getElementById('notes-'+id).style.display='none';}
 
