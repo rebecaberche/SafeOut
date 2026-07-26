@@ -457,6 +457,7 @@ async function recordIncident(type, extra){
     qr_code_id: QR_ID,
     venue_name: QR_INFO ? QR_INFO.venue : null,
     placement: QR_INFO ? QR_INFO.placement : null,
+    city: QR_INFO ? (QR_INFO.city||null) : null,
     latitude: loc.lat,
     longitude: loc.lng,
     location_accuracy_m: loc.accuracy,
