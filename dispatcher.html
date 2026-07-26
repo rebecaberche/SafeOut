@@ -168,6 +168,8 @@ const AUTHORISED = [
 ];
 
 let currentUser = null;
+let CITY_COORDS = [47.0722, 21.9217]; // default Oradea; set from dispatcher's city on login
+async function geocodeCity(name){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(name)); if(r.ok){ const d=await r.json(); if(d&&d.length) return [parseFloat(d[0].lat),parseFloat(d[0].lon)]; } }catch(e){} return null; }
 let auditEntries = [];
 
 // ---- Shared incident store (same browser bridge with the PWA) ----
@@ -220,7 +222,7 @@ function updateClock(){const el=document.getElementById('topbarTime');if(el){con
 updateClock();setInterval(updateClock,30000);
 
 // ---- Secure login ----
-function doLogin(){
+async function doLogin(){
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPass').value;
   // Check hardcoded admin first
@@ -232,7 +234,7 @@ function doLogin(){
     try{ created = JSON.parse(localStorage.getItem('safeout_dispatchers')) || []; }catch(e){}
     const d = created.find(u => (u.email||'').toLowerCase() === email && u.active !== false);
     if(d && d.pass_b64 && btoa(pass) === d.pass_b64){
-      match = { email:d.email, full_name:d.name, role:d.role || 'dispatcher' };
+      match = { email:d.email, full_name:d.name, role:d.role || 'dispatcher', city:d.city };
       ok = true;
     }
   }
@@ -246,6 +248,7 @@ function doLogin(){
   // if(!r.ok){ document.getElementById('loginError').style.display='block'; return; }
   // const data = await r.json(); authToken = data.access_token; currentUser = data.dispatcher;
   currentUser = match;
+  if(match.city){ const co=await geocodeCity(match.city); if(co){ CITY_COORDS=co; if(_map) _map.setView(co,14); } }
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('appShell').classList.remove('hidden');
   document.getElementById('dispatcherName').textContent = currentUser.full_name;
@@ -301,7 +304,7 @@ let _map=null,_markers=[];
 function initMap(){
   if(_map) return;
   if(typeof L==='undefined'){ document.getElementById('mapContainer').innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px">Map library could not load (check connection)</div>'; return; }
-  _map = L.map('mapContainer', {zoomControl:true, attributionControl:false}).setView([47.0722,21.9217], 13);
+  _map = L.map('mapContainer', {zoomControl:true, attributionControl:false}).setView(CITY_COORDS, 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19}).addTo(_map);
 }
 function renderMapList(){
@@ -321,7 +324,7 @@ function renderMapList(){
     });
     if(withGeo.length){ const grp=L.featureGroup(_markers); _map.fitBounds(grp.getBounds().pad(0.3),{maxZoom:15}); }
   }
-  document.getElementById('mapIncidentList').innerHTML=active.length?active.map(i=>{const m=TYPE_META[i.type]||TYPE_META.escort;return '<div class="incident-card '+m.color+'" style="margin-bottom:8px;cursor:default"><div class="inc-top"><div class="inc-type"><span>'+m.icon+'</span><span class="inc-type-label">'+m.label+'</span><span class="badge '+m.color+'">'+i.status+'</span></div><span class="inc-time">'+i.ago+'</span></div><div class="inc-meta"><div class="inc-meta-item">'+i.venue+'</div></div>'+(i.lat?'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">'+i.lat.toFixed(4)+', '+i.lng.toFixed(4)+'</div></div>':'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">No GPS location</div></div>')+'</div>';}).join(''):'<div style="text-align:center;color:var(--text3);padding:48px 0;font-size:13px">No active incidents on map</div>';}
+  document.getElementById('mapIncidentList').innerHTML=active.length?active.map(i=>{const m=TYPE_META[i.type]||TYPE_META.escort;return '<div class="incident-card '+m.color+'" style="margin-bottom:8px;cursor:default"><div class="inc-top"><div class="inc-type"><span>'+m.icon+'</span><span class="inc-type-label">'+m.label+'</span><span class="badge '+m.color+'">'+i.status+'</span></div><span class="inc-time">'+i.ago+'</span></div><div class="inc-meta"><div class="inc-meta-item">'+i.venue+'</div></div>'+(i.lat?'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">'+i.lat.toFixed(6)+', '+i.lng.toFixed(6)+'</div></div>':'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">No GPS location</div></div>')+'</div>';}).join(''):'<div style="text-align:center;color:var(--text3);padding:48px 0;font-size:13px">No active incidents on map</div>';}
 function addAudit(action,color,detail){auditEntries.unshift({action,color,detail,time:new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})});}
 function renderAuditLog(){const el=document.getElementById('auditLog');if(!auditEntries.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No actions yet this session</div>';return;}el.innerHTML=auditEntries.map(e=>'<div class="log-item"><div class="log-dot '+e.color+'"></div><div class="log-body"><div class="log-action">'+e.action+'</div><div class="log-meta">'+e.detail+' &middot; '+e.time+'</div></div></div>').join('');}
 function refreshView(){

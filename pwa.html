@@ -303,6 +303,22 @@ function getQRInfo(){
 }
 const QR_INFO = getQRInfo();
 
+// Count this scan: increment the QR's scan counter (once per page load).
+// BACKEND: POST `${API_BASE}/qr-codes/${QR_ID}/scan` to increment server-side.
+(function countScan(){
+  if(QR_ID === 'demo') return; // don't count demo opens
+  try{
+    const codes = JSON.parse(localStorage.getItem('safeout_qrcodes')) || [];
+    const q = codes.find(x => x.code === QR_ID);
+    if(q){
+      q.scans = (q.scans||0) + 1;
+      localStorage.setItem('safeout_qrcodes', JSON.stringify(codes));
+      // notify PowerAdmin (same browser) to refresh its QR counts
+      try{ new BroadcastChannel('safeout').postMessage('qr_update'); }catch(e){}
+    }
+  }catch(e){}
+})();
+
 // ---- Shared incident store (localStorage) so dispatch/admin in the SAME browser can see real actions ----
 // NOTE: this is a frontend-only bridge. Real cross-device sync needs the backend.
 const STORE_KEY = 'safeout_incidents';
