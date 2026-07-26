@@ -104,7 +104,7 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 .modal-btn.primary{background:var(--burg);color:#fff}
 .modal-btn.cancel{background:rgba(255,255,255,.06);color:var(--text2)}
 .modal-btn:hover{opacity:.88}
-.leaflet-container{background:#0d0d1a!important;font-family:inherit}.qr-map{height:260px;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+.leaflet-container{background:#0d0d1a!important;font-family:inherit}.qr-map{height:260px;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}.modal-select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;cursor:pointer}.modal-select:focus{border-color:var(--burg-border)}</style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -266,7 +266,13 @@ function renderDashboard(){
 
 const empty = (msg)=>'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">'+msg+'</td></tr>';
 
-function renderVenues(){document.getElementById('venuesTable').innerHTML=VENUES.length?VENUES.map(v=>'<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+v.city+'</td><td>'+(v.qrCount||0)+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="editItem()">Edit</button></td></tr>').join(''):empty('No venues yet. Click "Add venue" to register your first partner.');}
+function renderVenues(){
+  const vs = (ACCOUNT_ROLE==='super_admin' ? VENUES : VENUES.filter(v=>(v.city||'')===ACCOUNT_CITY));
+  document.getElementById('venuesTable').innerHTML=vs.length?vs.map(v=>{
+    const count = QRCODES.filter(q=>q.venue_id===v.id).length; // real count
+    return '<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+(v.city||'')+'</td><td>'+count+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="editItem()">Edit</button></td></tr>';
+  }).join(''):empty('No venues'+(ACCOUNT_ROLE==='super_admin'?'':' in '+ACCOUNT_CITY)+' yet. Click "Add venue" to register one.');
+}
 
 function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map(d=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="editItem()">Edit</button></td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
 
@@ -359,9 +365,9 @@ function renderCharts(incidents){
 
 // ---- Add via modal (writes to real in-memory stores) ----
 const MODAL_CONFIG={
-  venue:{title:'Add venue',sub:'Register a new partner location',fields:[['Venue name','text','name'],['Type','text','bar / hotel / transport / mall'],['City','text','Oradea'],['Address','text','Str. Republicii 5']]},
+  venue:{title:'Add venue',sub:'Register a partner location. Click the map to pin the exact venue.',fields:[['Venue name','text','Club Neptun'],['Type','text','bar / hotel / transport / mall'],['City','text','Oradea'],['__MAP__','map','']]},
   dispatcher:{title:'Add dispatcher',sub:'Create a new dispatcher account. The city determines which incidents they see.',fields:[['Full name','text','Full name'],['Email','email','user@admin.ro'],['City','text','Oradea'],['Role','text','dispatcher / supervisor'],['Temporary password','password','']]},
-  qr:{title:'Generate QR code',sub:'Click on the map to drop the pin exactly on the venue. Then add the placement (which cabin/spot).',fields:[['Venue name','text','Club Neptun'],['__MAP__','map',''],['Placement / cabin','text','Baie femei, cabina 2'],['Short code (optional)','text','auto-generated']]}
+  qr:{title:'Generate QR code',sub:'Pick a venue (the QR inherits its location), or choose Street/public to drop a pin manually.',fields:[['__VENUE__','venueselect',''],['__MAP__','map',''],['Placement / cabin','text','Baie femei, cabina 2'],['Short code (optional)','text','auto-generated']]}
 };
 let currentModalType = null;
 let _qrPinLat=null, _qrPinLng=null, _qrModalMap=null;
@@ -372,14 +378,39 @@ function openModal(type){
   document.getElementById('modalSub').textContent=cfg.sub;
   _qrPinLat=null; _qrPinLng=null;
   document.getElementById('modalFields').innerHTML=cfg.fields.map((f,idx)=>{
+    if(f[1]==='venueselect'){
+      // Dropdown of venues visible to this account + a Street/public option
+      const vs = (ACCOUNT_ROLE==='super_admin' ? VENUES : VENUES.filter(v=>(v.city||'')===ACCOUNT_CITY));
+      const opts = vs.map(v=>'<option value="'+v.id+'">'+v.name+' ('+(v.city||'?')+')</option>').join('');
+      return '<div class="field"><label>Venue</label><select id="mf-'+idx+'" class="modal-select" onchange="onVenueSelect(this.value)"><option value="">— Choose a venue —</option>'+opts+'<option value="__street__">Street / public (pin manually)</option></select></div>';
+    }
     if(f[1]==='map'){
-      return '<div class="field"><label>Location — click the map to place the pin</label><div id="qrMap" class="qr-map"></div><div id="qrPinStatus" style="font-size:11px;color:var(--text3)">No pin set yet. Click on the venue.</div></div>';
+      return '<div class="field" id="qrMapWrap" style="display:none"><label id="qrMapLabel">Click the map to place the pin</label><div id="qrMap" class="qr-map"></div><div id="qrPinStatus" style="font-size:11px;color:var(--text3)">No pin set yet. Click the location.</div></div>';
     }
     return '<div class="field"><label>'+f[0]+'</label><input id="mf-'+idx+'" type="'+f[1]+'" placeholder="'+f[2]+'"></div>';
   }).join('');
   document.getElementById('modalOverlay').classList.add('open');
-  // Init map if this modal has one
-  if(cfg.fields.some(f=>f[1]==='map')){ setTimeout(initQRModalMap, 150); }
+  // Venue modal has a map shown immediately
+  if(type==='venue' && cfg.fields.some(f=>f[1]==='map')){ 
+    const wrap=document.getElementById('qrMapWrap'); if(wrap) wrap.style.display='block';
+    setTimeout(initQRModalMap, 150); 
+  }
+}
+
+// When a venue is picked in the QR modal: hide/show the manual map accordingly.
+let _selectedVenue = null;
+function onVenueSelect(val){
+  const wrap=document.getElementById('qrMapWrap');
+  _qrPinLat=null; _qrPinLng=null; _selectedVenue=null;
+  if(val==='__street__'){
+    if(wrap){ wrap.style.display='block'; }
+    setTimeout(initQRModalMap, 150);
+  } else if(val){
+    _selectedVenue = VENUES.find(v=>v.id===val) || null;
+    if(wrap) wrap.style.display='none';
+  } else {
+    if(wrap) wrap.style.display='none';
+  }
 }
 function initQRModalMap(){
   const el=document.getElementById('qrMap');
@@ -406,7 +437,9 @@ async function submitModal(){
   if(currentModalType==='venue'){
     const name=get(0);
     if(!name){ alert('Venue name is required'); return; }
-    VENUES.push({name,type:get(1)||'venue',city:get(2)||'',address:get(3)||'',qrCount:0,active:true});
+    const vlat=_qrPinLat, vlng=_qrPinLng; // reuse the map-pin vars
+    if(vlat===null||vlng===null){ if(!confirm('No pin placed for this venue. Add it without a fixed location?')){ return; } }
+    VENUES.push({id:'v-'+Math.random().toString(36).slice(2,9),name,type:get(1)||'venue',city:get(2)||ACCOUNT_CITY,lat:vlat,lng:vlng,active:true});
     renderVenues();
   }
   else if(currentModalType==='dispatcher'){
@@ -419,23 +452,29 @@ async function submitModal(){
     alert('Dispatcher created for '+city+'. They can sign in at the Dispatch Center with:\n\nEmail: '+email+'\nPassword: '+pass+'\n\n(Share these credentials securely.)');
   }
   else if(currentModalType==='qr'){
-    // Fields now: 0=venue name, 1=MAP(no input), 2=placement, 3=short code
-    const venue=get(0), placement=get(2), shortInput=get(3);
-    if(!venue){ alert('Venue name is required'); return; }
-    if(_qrPinLat===null || _qrPinLng===null){
-      if(!confirm('You have not placed a pin on the map. Generate this QR anyway (it will use the phone GPS instead of a fixed location)?')){ return; }
-    }
+    // Fields: 0=venue select, 1=MAP(street only), 2=placement, 3=short code
+    const venueVal = get(0); // the <select> value: venue id, '__street__', or ''
+    const placement=get(2), shortInput=get(3);
     const code=shortInput||('SO-'+Math.random().toString(36).slice(2,6).toUpperCase());
-    QRCODES.push({
-      code, venue, address:'', placement:placement||'',
-      lat:_qrPinLat, lng:_qrPinLng,
-      city: ACCOUNT_CITY,        // which city this QR belongs to
-      scans:0, active:true
-    });
-    if(_qrPinLat!==null){
-      alert('QR created with an exact pin:\n'+_qrPinLat.toFixed(6)+', '+_qrPinLng.toFixed(6));
+
+    let qr;
+    if(venueVal && venueVal!=='__street__'){
+      // Linked to a real venue → inherit its location + city.
+      const v = VENUES.find(x=>x.id===venueVal);
+      if(!v){ alert('Please choose a valid venue'); return; }
+      qr = { code, venue:v.name, venue_id:v.id, placement:placement||'', lat:v.lat, lng:v.lng, city:v.city, scans:0, active:true };
+    } else if(venueVal==='__street__'){
+      // Street/public → manual pin.
+      if(_qrPinLat===null||_qrPinLng===null){
+        if(!confirm('No pin placed. Generate this street QR anyway (it will use the phone GPS)?')){ return; }
+      }
+      qr = { code, venue:'Street / public', venue_id:null, placement:placement||'', lat:_qrPinLat, lng:_qrPinLng, city:ACCOUNT_CITY, scans:0, active:true };
+    } else {
+      alert('Please choose a venue or Street/public'); return;
     }
+    QRCODES.push(qr);
     renderQR();
+    alert('QR "'+code+'" created for '+qr.venue+(qr.lat?(' at '+qr.lat.toFixed(6)+', '+qr.lng.toFixed(6)):' (GPS-based)')+'.');
   }
   // BACKEND: POST to /venues, /dispatchers or /qr-codes depending on currentModalType
   persistAll();
