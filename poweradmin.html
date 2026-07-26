@@ -268,13 +268,14 @@ const empty = (msg)=>'<tr><td colspan="6" style="text-align:center;color:var(--t
 
 function renderVenues(){
   const vs = (ACCOUNT_ROLE==='super_admin' ? VENUES : VENUES.filter(v=>(v.city||'')===ACCOUNT_CITY));
-  document.getElementById('venuesTable').innerHTML=vs.length?vs.map(v=>{
-    const count = v.id ? QRCODES.filter(q=>q.venue_id && q.venue_id===v.id).length : 0; // real count (ignores legacy data)
-    return '<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+(v.city||'')+'</td><td>'+count+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="editVenue(\''+v.id+'\')">Edit</button><button class="table-action" onclick="deleteVenue(\''+v.id+'\')">Delete</button></td></tr>';
+  document.getElementById('venuesTable').innerHTML=vs.length?vs.map((v)=>{
+    const realIdx = VENUES.indexOf(v);
+    const count = v.id ? QRCODES.filter(q=>q.venue_id && q.venue_id===v.id).length : 0;
+    return '<tr><td class="cell-main">'+v.name+'</td><td style="text-transform:capitalize">'+v.type+'</td><td>'+(v.city||'')+'</td><td>'+count+' codes</td><td><span class="status-pill '+(v.active?'active':'inactive')+'">'+(v.active?'Active':'Inactive')+'</span></td><td><button class="table-action" onclick="editVenue('+realIdx+')">Edit</button><button class="table-action" onclick="deleteVenue('+realIdx+')">Delete</button></td></tr>';
   }).join(''):empty('No venues'+(ACCOUNT_ROLE==='super_admin'?'':' in '+ACCOUNT_CITY)+' yet. Click "Add venue" to register one.');
 }
 
-function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map(d=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="editDispatcher(\''+d.email+'\')">Edit</button><button class="table-action" onclick="deleteDispatcher(\''+d.email+'\')">Delete</button></td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
+function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map((d,i)=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="editDispatcher('+i+')">Edit</button><button class="table-action" onclick="deleteDispatcher('+i+')">Delete</button></td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
 
 // Which QRs this account may see: super_admin sees all; others only their city.
 // BACKEND: enforce this server-side — the API must only return QRs for the admin's city.
@@ -544,8 +545,8 @@ async function geocodeAddress(address, venue){
 // ---- EDIT / DELETE actions (frontend, persisted to localStorage) ----
 // BACKEND: replace these with PATCH/DELETE calls to the API.
 
-function editVenue(id){
-  const v = VENUES.find(x=>x.id===id); if(!v) return;
+function editVenue(idx){
+  const v = VENUES[idx]; if(!v) return;
   const name = prompt('Venue name:', v.name); if(name===null) return;
   const type = prompt('Type (bar / hotel / transport / mall / club):', v.type); if(type===null) return;
   const city = prompt('City:', v.city||''); if(city===null) return;
@@ -554,17 +555,17 @@ function editVenue(id){
   v.city = (city||'').trim()||v.city;
   persistAll(); renderVenues(); renderDashboard();
 }
-function deleteVenue(id){
-  const v = VENUES.find(x=>x.id===id); if(!v) return;
-  const linked = QRCODES.filter(q=>q.venue_id===id).length;
+function deleteVenue(idx){
+  const v = VENUES[idx]; if(!v) return;
+  const linked = v.id ? QRCODES.filter(q=>q.venue_id===v.id).length : 0;
   const msg = linked ? ('Delete "'+v.name+'"? It has '+linked+' linked QR code(s). Those QRs will remain but lose their venue link.') : ('Delete "'+v.name+'"?');
   if(!confirm(msg)) return;
-  VENUES = VENUES.filter(x=>x.id!==id);
+  VENUES.splice(idx,1);
   persistAll(); renderVenues(); renderDashboard();
 }
 
-function editDispatcher(email){
-  const d = DISPATCHERS.find(x=>x.email===email); if(!d) return;
+function editDispatcher(idx){
+  const d = DISPATCHERS[idx]; if(!d) return;
   const name = prompt('Full name:', d.name); if(name===null) return;
   const city = prompt('City:', d.city||''); if(city===null) return;
   const role = prompt('Role (dispatcher / supervisor):', d.role); if(role===null) return;
@@ -575,13 +576,13 @@ function editDispatcher(email){
   d.active = active;
   const newPass = prompt('New password (leave blank to keep current):', '');
   if(newPass && newPass.length>=6){ d.pass_b64 = btoa(newPass); }
-  else if(newPass && newPass.length<6){ alert('Password unchanged: must be at least 6 characters.'); }
+  else if(newPass && newPass.length>0 && newPass.length<6){ alert('Password unchanged: must be at least 6 characters.'); }
   persistAll(); renderDispatchers(); renderDashboard();
 }
-function deleteDispatcher(email){
-  const d = DISPATCHERS.find(x=>x.email===email); if(!d) return;
+function deleteDispatcher(idx){
+  const d = DISPATCHERS[idx]; if(!d) return;
   if(!confirm('Delete dispatcher "'+d.name+'" ('+d.email+')? They will no longer be able to sign in.')) return;
-  DISPATCHERS = DISPATCHERS.filter(x=>x.email!==email);
+  DISPATCHERS.splice(idx,1);
   persistAll(); renderDispatchers(); renderDashboard();
 }
 
