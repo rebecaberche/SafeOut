@@ -170,6 +170,14 @@ const AUTHORISED = [
   { email: 'rebeca.berche@sinca.org', pass_b64: 'cmViZWNAMjAwOA==', full_name: 'Rebeca Berche', role: 'super_admin', city: 'Oradea' }
 ];
 
+// Strict-ish email format validation (frontend). Real existence check needs backend email confirmation.
+function isValidEmail(e){
+  if(!e || e.length>254) return false;
+  // basic RFC-ish: local@domain.tld, no spaces, at least one dot in domain
+  const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return re.test(e);
+}
+
 // The logged-in account's city + its coordinates (for centering maps).
 let ACCOUNT_CITY = 'Oradea';
 let ACCOUNT_ROLE = 'super_admin';
@@ -275,7 +283,7 @@ function renderVenues(){
   }).join(''):empty('No venues'+(ACCOUNT_ROLE==='super_admin'?'':' in '+ACCOUNT_CITY)+' yet. Click "Add venue" to register one.');
 }
 
-function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map((d,i)=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td>'+(d.city||'\u2014')+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="editDispatcher('+i+')">Edit</button><button class="table-action" onclick="deleteDispatcher('+i+')">Delete</button></td></tr>').join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
+function renderDispatchers(){document.getElementById('dispatchersTable').innerHTML=DISPATCHERS.length?DISPATCHERS.map((d,i)=>'<tr><td class="cell-main">'+d.name+'</td><td style="color:var(--text2)">'+d.email+'</td><td>'+(d.city||'\u2014')+'</td><td style="text-transform:capitalize">'+d.role+'</td><td><span class="status-pill '+(d.active?'active':'inactive')+'">'+(d.active?'Active':'Suspended')+'</span></td><td><button class="table-action" onclick="deleteDispatcher('+i+')">Delete</button></td></tr>').join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:36px 0;font-size:13px">No dispatchers yet. Click "Add dispatcher" to create the first account.</td></tr>';}
 
 // Which QRs this account may see: super_admin sees all; others only their city.
 // BACKEND: enforce this server-side — the API must only return QRs for the admin's city.
@@ -504,9 +512,12 @@ async function submitModal(){
     renderVenues();
   }
   else if(currentModalType==='dispatcher'){
-    const name=get(0), email=get(1), city=get(2)||ACCOUNT_CITY, role=get(3)||'dispatcher', pass=get(4);
+    const name=get(0), email=(get(1)||'').toLowerCase(), city=get(2)||ACCOUNT_CITY, role=get(3)||'dispatcher', pass=get(4);
     if(!name||!email){ alert('Name and email are required'); return; }
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert('Please enter a valid email'); return; }
+    // Strict email format check. BACKEND: send a confirmation email to verify the address is real & owned.
+    if(!isValidEmail(email)){ alert('Please enter a valid email address (e.g. name@example.com).'); return; }
+    // No duplicate accounts
+    if(DISPATCHERS.some(d=>(d.email||'').toLowerCase()===email)){ alert('A dispatcher with this email already exists.'); return; }
     if(!pass || pass.length<6){ alert('Temporary password must be at least 6 characters'); return; }
     DISPATCHERS.push({name,email:email.toLowerCase(),city,role,active:true,pass_b64:btoa(pass)});
     renderDispatchers();
@@ -624,21 +635,6 @@ function deleteVenue(idx){
   persistAll(); renderVenues(); renderDashboard();
 }
 
-function editDispatcher(idx){
-  const d = DISPATCHERS[idx]; if(!d) return;
-  const name = prompt('Full name:', d.name); if(name===null) return;
-  const city = prompt('City:', d.city||''); if(city===null) return;
-  const role = prompt('Role (dispatcher / supervisor):', d.role); if(role===null) return;
-  const active = confirm('Should this dispatcher be ACTIVE?\n\nOK = Active, Cancel = Suspended');
-  d.name = name.trim()||d.name;
-  d.city = (city||'').trim()||d.city;
-  d.role = (role||'').trim()||d.role;
-  d.active = active;
-  const newPass = prompt('New password (leave blank to keep current):', '');
-  if(newPass && newPass.length>=6){ d.pass_b64 = btoa(newPass); }
-  else if(newPass && newPass.length>0 && newPass.length<6){ alert('Password unchanged: must be at least 6 characters.'); }
-  persistAll(); renderDispatchers(); renderDashboard();
-}
 function deleteDispatcher(idx){
   const d = DISPATCHERS[idx]; if(!d) return;
   if(!confirm('Delete dispatcher "'+d.name+'" ('+d.email+')? They will no longer be able to sign in.')) return;

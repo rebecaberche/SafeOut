@@ -109,6 +109,11 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 .log-body{flex:1}
 .log-action{font-size:12px;color:var(--text);margin-bottom:2px}
 .log-meta{font-size:10px;color:var(--text3)}
+.set-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.set-label{font-size:13px;color:var(--text2)}
+.set-val{font-size:13px;color:var(--text);font-weight:500}
+.set-toggle{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);cursor:pointer}
+.set-toggle input{width:16px;height:16px;accent-color:var(--burg)}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -133,6 +138,7 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <button class="nav-item" onclick="switchPage('history')"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>History</button>
 <div class="nav-section">Admin</div>
 <button class="nav-item" onclick="switchPage('audit')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Audit Log</button>
+<button class="nav-item" onclick="switchPage('settings')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</button>
 </nav>
 <div class="sidebar-footer"><div class="online-badge"><div class="online-dot"></div>Online &middot; Active</div>
 <button class="logout-btn" onclick="doLogout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button></div>
@@ -148,6 +154,35 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <div class="page" id="page-map"><div id="mapContainer" style="height:340px;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);margin-bottom:20px"></div><div class="section-head"><span class="section-title">Active locations</span></div><div id="mapIncidentList"></div></div>
 <div class="page" id="page-history"><div class="section-head"><span class="section-title">Resolved Incidents</span><span class="badge gray">Last 7 days</span></div><div id="historyList"></div></div>
 <div class="page" id="page-audit"><div class="section-head"><span class="section-title">Audit Log</span><span class="badge gray">This session</span></div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px" id="auditLog"></div></div>
+<div class="page" id="page-settings">
+  <div class="section-head"><span class="section-title">Settings</span></div>
+  <div style="max-width:520px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px">Account</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Your email and role are managed by your administrator.</div>
+      <div class="set-row"><span class="set-label">Email</span><span class="set-val" id="setEmail">&mdash;</span></div>
+      <div class="set-row"><span class="set-label">Role</span><span class="set-val" id="setRole">&mdash;</span></div>
+      <div class="field" style="margin-top:14px"><label>Display name</label><input type="text" id="setName" placeholder="Your name"></div>
+      <div class="field"><label>City</label><input type="text" id="setCity" placeholder="Your city"></div>
+      <button class="login-btn" style="margin-top:6px" onclick="saveProfile()">Save profile</button>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px">Change password</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Only you can change your password.</div>
+      <div class="field"><label>Current password</label><input type="password" id="curPass" placeholder="Current password"></div>
+      <div class="field"><label>New password</label><input type="password" id="newPass" placeholder="At least 6 characters"></div>
+      <div class="field"><label>Confirm new password</label><input type="password" id="newPass2" placeholder="Repeat new password"></div>
+      <div id="passMsg" style="display:none;font-size:12px;margin-bottom:10px"></div>
+      <button class="login-btn" onclick="changePassword()">Update password</button>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:16px">Preferences</div>
+      <label class="set-toggle"><input type="checkbox" id="setSound" checked> <span>Play a sound when a new incident arrives</span></label>
+    </div>
+  </div>
+</div>
 </div></div>
 <script>
 // ============================================================
@@ -274,8 +309,8 @@ function doLogout(){
   const p=document.getElementById('loginPass'); if(p) p.value='';
 }
 
-const PAGE_TITLES={live:'Live Incidents',map:'Map View',history:'History',audit:'Audit Log'};
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=PAGE_TITLES[id];if(id==='live')renderIncidents();if(id==='history')renderHistory();if(id==='map')renderMapList();if(id==='audit')renderAuditLog();}
+const PAGE_TITLES={live:'Live Incidents',map:'Map View',history:'History',audit:'Audit Log',settings:'Settings'};
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=PAGE_TITLES[id];if(id==='live')renderIncidents();if(id==='history')renderHistory();if(id==='map')renderMapList();if(id==='audit')renderAuditLog();if(id==='settings')renderSettings();}
 
 let activeFilter='all';
 function filterIncidents(type,btn){activeFilter=type;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderIncidents();}
@@ -339,6 +374,88 @@ function renderMapList(){
   document.getElementById('mapIncidentList').innerHTML=active.length?active.map(i=>{const m=TYPE_META[i.type]||TYPE_META.escort;return '<div class="incident-card '+m.color+'" style="margin-bottom:8px;cursor:default"><div class="inc-top"><div class="inc-type"><span>'+m.icon+'</span><span class="inc-type-label">'+m.label+'</span><span class="badge '+m.color+'">'+i.status+'</span></div><span class="inc-time">'+i.ago+'</span></div><div class="inc-meta"><div class="inc-meta-item">'+i.venue+'</div></div>'+(i.lat?'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">'+i.lat.toFixed(6)+', '+i.lng.toFixed(6)+'</div></div>':'<div class="inc-meta"><div class="inc-meta-item" style="font-size:10px;color:var(--text3)">No GPS location</div></div>')+'</div>';}).join(''):'<div style="text-align:center;color:var(--text3);padding:48px 0;font-size:13px">No active incidents on map</div>';}
 function addAudit(action,color,detail){auditEntries.unshift({action,color,detail,time:new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})});}
 function renderAuditLog(){const el=document.getElementById('auditLog');if(!auditEntries.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No actions yet this session</div>';return;}el.innerHTML=auditEntries.map(e=>'<div class="log-item"><div class="log-dot '+e.color+'"></div><div class="log-body"><div class="log-action">'+e.action+'</div><div class="log-meta">'+e.detail+' &middot; '+e.time+'</div></div></div>').join('');}
+// ---- SETTINGS (dispatcher self-service) ----
+function renderSettings(){
+  if(!currentUser) return;
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  const val=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v;};
+  set('setEmail', currentUser.email||'—');
+  set('setRole', currentUser.role||'dispatcher');
+  val('setName', currentUser.full_name||'');
+  val('setCity', ACCOUNT_CITY||'');
+  // load sound preference
+  try{ const s=localStorage.getItem('safeout_pref_sound'); document.getElementById('setSound').checked = (s===null? true : s==='1'); }catch(e){}
+}
+
+// Find the current user's record in the stored dispatchers list (for saving).
+function findMyDispatcherRecord(){
+  try{
+    const list = JSON.parse(localStorage.getItem('safeout_dispatchers')) || [];
+    const idx = list.findIndex(d => (d.email||'').toLowerCase() === (currentUser.email||'').toLowerCase());
+    return { list, idx };
+  }catch(e){ return { list:[], idx:-1 }; }
+}
+
+function saveProfile(){
+  const name = document.getElementById('setName').value.trim();
+  const city = document.getElementById('setCity').value.trim();
+  if(!name){ alert('Display name cannot be empty.'); return; }
+  currentUser.full_name = name;
+  if(city) ACCOUNT_CITY = city;
+  // Persist if this is a created (localStorage) dispatcher. The hardcoded super_admin isn't in that list.
+  const {list, idx} = findMyDispatcherRecord();
+  if(idx>=0){ list[idx].name = name; if(city) list[idx].city = city; try{ localStorage.setItem('safeout_dispatchers', JSON.stringify(list)); }catch(e){} }
+  // update UI
+  document.getElementById('dispatcherName').textContent = name;
+  const dc=document.getElementById('dispatcherCity'); if(dc) dc.textContent = ACCOUNT_ROLE==='super_admin' ? ('All cities · '+ACCOUNT_CITY) : (ACCOUNT_CITY+' · Dispatch');
+  // recenter map on new city
+  if(city){ geocodeCity(city).then(co=>{ if(co){ CITY_COORDS=co; if(_map) _map.setView(co,14); } }); }
+  addAudit('Profile updated','blue','Name/city changed');
+  // BACKEND: PATCH `${API_BASE}/dispatchers/me` { full_name, city }
+  alert('Profile saved.');
+}
+
+function changePassword(){
+  const cur = document.getElementById('curPass').value;
+  const np = document.getElementById('newPass').value;
+  const np2 = document.getElementById('newPass2').value;
+  const msg = document.getElementById('passMsg');
+  const show = (text,ok)=>{ msg.style.display='block'; msg.textContent=text; msg.style.color = ok?'#4ecfaa':'#ff8080'; };
+
+  // Verify current password against stored value
+  let currentHash = null;
+  const {list, idx} = findMyDispatcherRecord();
+  if(idx>=0) currentHash = list[idx].pass_b64;
+  else {
+    // hardcoded super_admin — match against AUTHORISED
+    const a = AUTHORISED.find(u=>u.email.toLowerCase()===(currentUser.email||'').toLowerCase());
+    if(a) currentHash = a.pass_b64;
+  }
+  if(!currentHash || btoa(cur)!==currentHash){ show('Current password is incorrect.',false); return; }
+  if(np.length<6){ show('New password must be at least 6 characters.',false); return; }
+  if(np!==np2){ show('New passwords do not match.',false); return; }
+  if(np===cur){ show('New password must be different from the current one.',false); return; }
+
+  // Save new password
+  if(idx>=0){ list[idx].pass_b64 = btoa(np); try{ localStorage.setItem('safeout_dispatchers', JSON.stringify(list)); }catch(e){} }
+  else {
+    // super_admin is hardcoded — can't truly persist in frontend; inform the user.
+    show('Password updated for this session. (The main admin password is fixed in the demo build; real change comes with the backend.)', true);
+    document.getElementById('curPass').value=''; document.getElementById('newPass').value=''; document.getElementById('newPass2').value='';
+    addAudit('Password changed','amber','Own password updated');
+    return;
+  }
+  // BACKEND: POST `${API_BASE}/dispatchers/me/password` { current_password, new_password }
+  show('Password updated successfully.', true);
+  document.getElementById('curPass').value=''; document.getElementById('newPass').value=''; document.getElementById('newPass2').value='';
+  addAudit('Password changed','amber','Own password updated');
+}
+
+// Save sound preference on toggle
+document.addEventListener('change', (e)=>{
+  if(e.target && e.target.id==='setSound'){ try{ localStorage.setItem('safeout_pref_sound', e.target.checked?'1':'0'); }catch(err){} }
+});
+
 function refreshView(){
   if(!currentUser) return;
   const active=document.querySelector('.page.active'); const id=active?active.id:'';
