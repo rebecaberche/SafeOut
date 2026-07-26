@@ -218,7 +218,7 @@ function getContactCount(){ try{ return parseInt(localStorage.getItem('safeout_c
 function updateStoreStatus(id, status){
   const list = loadStore();
   const it = list.find(x=>x.id===id);
-  if(it){ it.status = status; if(status==='resolved') it.resolved_at = new Date().toISOString(); saveStore(list); }
+  if(it){ it.status = status; if(status==='acknowledged' && !it.acknowledged_at) it.acknowledged_at = new Date().toISOString(); if(status==='resolved'){ it.resolved_at = new Date().toISOString(); if(!it.acknowledged_at) it.acknowledged_at = new Date().toISOString(); } saveStore(list); }
 }
 
 const TYPE_META = {

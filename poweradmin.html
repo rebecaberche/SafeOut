@@ -143,7 +143,7 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
 <div class="chart-card"><div class="chart-title">Incident types breakdown</div><div class="type-breakdown"><div class="type-card"><div class="type-icon">&#128680;</div><div class="type-count" style="color:var(--red)">31</div><div class="type-name">Emergency 112</div></div><div class="type-card"><div class="type-icon">&#128682;</div><div class="type-count" style="color:var(--amber)">42</div><div class="type-name">Get me out</div></div><div class="type-card"><div class="type-icon">&#128241;</div><div class="type-count" style="color:var(--blue)">21</div><div class="type-name">Call somebody</div></div></div></div>
 </div>
 <div class="page" id="page-analytics">
-<div class="stats-grid"><div class="stat-card"><div class="stat-label">Avg response</div><div class="stat-val teal">&mdash;</div><div class="stat-sub">minutes</div></div><div class="stat-card"><div class="stat-label">Resolution rate</div><div class="stat-val blue" id="paResRate">&mdash;</div><div class="stat-sub">incidents closed</div></div><div class="stat-card"><div class="stat-label">112 escalations</div><div class="stat-val amber" id="paEmergency">0</div><div class="stat-sub">all time</div></div><div class="stat-card"><div class="stat-label">False alarms</div><div class="stat-val burg">&mdash;</div><div class="stat-sub">filtered</div></div></div>
+<div class="stats-grid"><div class="stat-card"><div class="stat-label">Avg response</div><div class="stat-val teal" id="anAvgResp">&mdash;</div><div class="stat-sub">to acknowledge</div></div><div class="stat-card"><div class="stat-label">Resolution rate</div><div class="stat-val blue" id="anResRate">&mdash;</div><div class="stat-sub">incidents closed</div></div><div class="stat-card"><div class="stat-label">112 escalations</div><div class="stat-val amber" id="anEmergency">0</div><div class="stat-sub">all time</div></div><div class="stat-card"><div class="stat-label">Total scans</div><div class="stat-val burg" id="anScans">0</div><div class="stat-sub">across all QRs</div></div></div>
 <div class="chart-card"><div class="chart-title">Scans by venue type</div><div class="bar-chart" id="venueTypeChart"></div></div>
 <div class="chart-card"><div class="chart-title">Peak hours (incidents)</div><div class="bar-chart" id="hoursChart"></div></div>
 </div>
@@ -236,7 +236,7 @@ function doLogout(){
 }
 
 const TITLES={dashboard:'Dashboard',analytics:'Analytics',venues:'Venues',qrcodes:'QR Codes',dispatchers:'Dispatchers',evidence:'Evidence',reports:'Reports & Export'};
-function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=TITLES[id];if(id==='dashboard')renderDashboard();if(id==='reports')renderReport();}
+function switchPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');event.currentTarget.classList.add('active');document.getElementById('topbarTitle').textContent=TITLES[id];if(id==='dashboard')renderDashboard();if(id==='analytics')renderAnalytics();if(id==='reports')renderReport();}
 
 function renderAll(){renderDashboard();renderVenues();renderDispatchers();renderQR();renderEvidence();}
 function renderReport(){
@@ -362,6 +362,66 @@ function renderCharts(incidents){
   const co = incidents.filter(i=>i.situation_type==='contact').length;
   const cards = document.querySelectorAll('.type-count');
   if(cards.length>=3){ cards[0].textContent=em; cards[1].textContent=es; cards[2].textContent=co; }
+}
+
+// ---- ANALYTICS page — all from real incident + QR data ----
+function renderAnalytics(){
+  const incidents = loadStore();
+  // Scope to city for non-super-admins
+  const scoped = (ACCOUNT_ROLE==='super_admin') ? incidents : incidents.filter(i=>(i.city||'')===ACCOUNT_CITY);
+  const scopedQRs = (ACCOUNT_ROLE==='super_admin') ? QRCODES : QRCODES.filter(q=>(q.city||'')===ACCOUNT_CITY);
+
+  // --- Stat cards ---
+  const emergency = scoped.filter(i=>i.situation_type==='emergency').length;
+  const resolved = scoped.filter(i=>i.status==='resolved').length;
+  const totalScans = scopedQRs.reduce((s,q)=>s+(q.scans||0),0);
+
+  // Avg response = avg time from created_at to first acknowledged/resolved (if we have timestamps)
+  let respTimes = [];
+  scoped.forEach(i=>{
+    if(i.created_at && i.acknowledged_at){
+      const d = (new Date(i.acknowledged_at) - new Date(i.created_at))/1000;
+      if(d>=0 && d<86400) respTimes.push(d);
+    }
+  });
+  const avgResp = respTimes.length ? (respTimes.reduce((a,b)=>a+b,0)/respTimes.length) : null;
+  const fmtResp = avgResp===null ? '\u2014' : (avgResp<60 ? Math.round(avgResp)+'s' : Math.floor(avgResp/60)+'m '+Math.round(avgResp%60)+'s');
+
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val;};
+  set('anAvgResp', fmtResp);
+  set('anResRate', scoped.length ? Math.round(resolved/scoped.length*100)+'%' : '\u2014');
+  set('anEmergency', emergency);
+  set('anScans', totalScans);
+
+  // --- Chart 1: Scans by venue type ---
+  // Sum scans of QRs grouped by their venue's type.
+  const typeScans = {};
+  scopedQRs.forEach(q=>{
+    let type = 'other';
+    if(q.venue_id){ const v=VENUES.find(x=>x.id===q.venue_id); if(v&&v.type) type=v.type; }
+    else if(q.venue==='Street / public'){ type='street'; }
+    type = type.charAt(0).toUpperCase()+type.slice(1);
+    typeScans[type] = (typeScans[type]||0) + (q.scans||0);
+  });
+  drawBarChart('venueTypeChart', Object.entries(typeScans).map(([l,v])=>({l,v})), 'No scan data yet');
+
+  // --- Chart 2: Peak hours (incidents by hour of day) ---
+  const hours = new Array(24).fill(0);
+  scoped.forEach(i=>{
+    if(i.created_at){ const h=new Date(i.created_at).getHours(); if(h>=0&&h<24) hours[h]++; }
+  });
+  // Show only hours that have data, or a compact 24h view
+  const hourData = hours.map((v,h)=>({l:(h<10?'0':'')+h, v}));
+  const anyHour = hours.some(v=>v>0);
+  drawBarChart('hoursChart', anyHour ? hourData : [], 'No incidents yet');
+}
+
+// Generic bar chart drawer into a .bar-chart container
+function drawBarChart(elId, data, emptyMsg){
+  const el = document.getElementById(elId); if(!el) return;
+  if(!data.length){ el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:30px 0;text-align:center;width:100%">'+(emptyMsg||'No data')+'</div>'; return; }
+  const max = Math.max(1, ...data.map(d=>d.v));
+  el.innerHTML = data.map(d=>'<div class="bar-col"><div class="bar" data-val="'+d.v+'" style="height:'+(d.v/max*100)+'%"></div><div class="bar-label">'+d.l+'</div></div>').join('');
 }
 
 // ---- Add via modal (writes to real in-memory stores) ----
@@ -601,7 +661,7 @@ function refreshPA(){
   const active=document.querySelector('.page.active'); const id=active?active.id:'';
   if(id==='page-dashboard') renderDashboard();
   else if(id==='page-evidence') renderEvidence();
-  else if(id==='page-analytics') renderDashboard();
+  else if(id==='page-analytics') renderAnalytics();
   else if(id==='page-qrcodes') renderQR();
 }
 window.addEventListener('storage',(e)=>{ if(e.key && e.key.indexOf('safeout_')===0) refreshPA(); });
