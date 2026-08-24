@@ -212,6 +212,26 @@ function updateClock(){const el=document.getElementById('topbarTime');if(el){con
 updateClock();setInterval(updateClock,30000);
 
 // ---- Secure login ----
+async // ---- Super-admin access gate ----
+// The panel only reveals itself when opened via the secret link:
+//   poweradmin.html?key=sinca-2026-safeout
+// Without the key, a neutral "page not found" is shown so the panel stays undiscoverable.
+// BACKEND: enforce this server-side (the admin route should 404 without a valid signed link/token).
+const SUPER_ADMIN_KEY = 'sinca-2026-safeout';
+function checkAccessGate(){
+  const key = new URLSearchParams(window.location.search).get('key');
+  if(key === SUPER_ADMIN_KEY){
+    try{ sessionStorage.setItem('safeout_gate','1'); }catch(e){}
+    return true;
+  }
+  // allow staying in during the session once passed
+  try{ if(sessionStorage.getItem('safeout_gate')==='1') return true; }catch(e){}
+  return false;
+}
+function showGateBlock(){
+  document.body.innerHTML = '<div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d0d1a;color:#5a5a6a;font-family:system-ui,sans-serif;text-align:center;padding:24px"><div style="font-size:64px;font-weight:700;margin-bottom:8px;color:#2a2a3a">404</div><div style="font-size:15px">Page not found.</div></div>';
+}
+
 async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass=document.getElementById('loginPass').value;
@@ -667,6 +687,7 @@ setInterval(()=>{ let s=''; try{ s=(localStorage.getItem('safeout_incidents')||'
 // BACKEND (realtime): replace with WebSocket push → refreshPA().
 
 document.addEventListener('DOMContentLoaded',()=>{
+  if(!checkAccessGate()){ showGateBlock(); return; }
   const p=document.getElementById('loginPass');
   if(p) p.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 });

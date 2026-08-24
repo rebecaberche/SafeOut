@@ -150,11 +150,18 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .consent-accept{width:100%;background:var(--red);border:none;border-radius:14px;padding:16px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;transition:opacity .15s}
 .consent-accept:active{opacity:.85}
 .consent-decline{width:100%;background:none;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text2);cursor:pointer}
+.lang-toggle{position:absolute;top:14px;right:16px;z-index:50;display:flex;gap:2px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:3px}
+.lang-btn{background:none;border:none;color:var(--text3);font-size:11px;font-weight:600;padding:4px 10px;border-radius:16px;cursor:pointer;font-family:inherit}
+.lang-btn.active{background:var(--red);color:#fff}
 .consent-note{font-size:10px;color:var(--text3);text-align:center;line-height:1.5;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="shell">
+  <div class="lang-toggle">
+    <button class="lang-btn" id="langRO" onclick="setLang('ro')">RO</button>
+    <button class="lang-btn active" id="langEN" onclick="setLang('en')">EN</button>
+  </div>
   <div class="screen active" id="screen-main">
     <div class="main-header">
       <div class="logo-row">
@@ -162,41 +169,41 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
         <div class="logo-sep"></div>
         <div class="logo-name">SafeOut</div>
       </div>
-      <h1 class="main-title">Do you need<br>help right now?</h1>
-      <p class="main-sub">Tap a button. We're here.</p>
+      <h1 class="main-title" data-i18n="main_title">Do you need<br>help right now?</h1>
+      <p class="main-sub" data-i18n="main_sub">Tap a button. We're here.</p>
     </div>
     <div class="btn-list">
       <button class="action-btn" onclick="showConfirm('escort')" aria-label="Get me out">
         <div class="btn-inner blue">
           <div class="btn-icon blue"><svg viewBox="0 0 24 24" stroke="#a0aaff"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg></div>
-          <div class="btn-body"><span class="btn-label blue">Get me out</span><span class="btn-desc blue">Staff will escort you safely to the exit</span></div>
+          <div class="btn-body"><span class="btn-label blue" data-i18n="escort_label">Get me out</span><span class="btn-desc blue" data-i18n="escort_desc">Staff will escort you safely to the exit</span></div>
           <span class="btn-arrow">&rsaquo;</span>
         </div>
       </button>
       <button class="action-btn" onclick="showConfirm('contact')" aria-label="Call somebody">
         <div class="btn-inner teal">
           <div class="btn-icon teal"><svg viewBox="0 0 24 24" stroke="#4ecfaa"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-          <div class="btn-body"><span class="btn-label teal">Call somebody</span><span class="btn-desc teal">Alert a trusted contact with your location</span></div>
+          <div class="btn-body"><span class="btn-label teal" data-i18n="contact_label">Call somebody</span><span class="btn-desc teal" data-i18n="contact_desc">Alert a trusted contact with your location</span></div>
           <span class="btn-arrow">&rsaquo;</span>
         </div>
       </button>
-      <div class="divider"><div class="divider-line"></div><span class="divider-text">emergency</span><div class="divider-line"></div></div>
+      <div class="divider"><div class="divider-line"></div><span class="divider-text" data-i18n="emergency">emergency</span><div class="divider-line"></div></div>
       <button class="action-btn" onclick="showConfirm('112')" aria-label="Emergency 112">
         <div class="btn-inner red">
           <div class="btn-icon red"><svg viewBox="0 0 24 24" stroke="#ff8080"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-          <div class="btn-body"><span class="btn-label red">112 &mdash; I'm in danger</span><span class="btn-desc red">Location + metadata sent to authorities</span></div>
+          <div class="btn-body"><span class="btn-label red" data-i18n="em_label">112 &mdash; I'm in danger</span><span class="btn-desc red" data-i18n="em_desc">Location + metadata sent to authorities</span></div>
           <span class="btn-arrow">&rsaquo;</span>
         </div>
       </button>
       <button class="action-btn" onclick="showInfo()" aria-label="About SafeOut">
         <div class="btn-inner gray">
           <div class="btn-icon gray"><svg viewBox="0 0 24 24" stroke="rgba(255,255,255,0.38)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
-          <div class="btn-body"><span class="btn-label gray">About SafeOut</span><span class="btn-desc gray">Who we are &middot; how each button works</span></div>
+          <div class="btn-body"><span class="btn-label gray" data-i18n="about_label">About SafeOut</span><span class="btn-desc gray" data-i18n="about_desc">Who we are &middot; how each button works</span></div>
           <span class="btn-arrow">&rsaquo;</span>
         </div>
       </button>
     </div>
-    <div class="footer-status"><div class="pulse-dot"></div><span class="footer-text">dispatch active &middot; confidential</span></div>
+    <div class="footer-status"><div class="pulse-dot"></div><span class="footer-text" data-i18n="footer">dispatch active &middot; confidential</span></div>
   </div>
   <div class="screen" id="screen-confirm">
     <div class="confirm-icon-wrap teal" id="confirmIcon"><svg id="confirmSvg" viewBox="0 0 24 24" stroke="#4ecfaa"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -291,6 +298,61 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 //  API_BASE: set to your backend URL when ready (e.g. https://api.safeout.ro)
 // ============================================================
 const API_BASE = ''; // TODO: set backend URL
+// ---- Language / i18n (RO / EN) ----
+const I18N = {
+  en: {
+    main_title: "Do you need<br>help right now?",
+    main_sub: "Tap a button. We're here.",
+    escort_label: "Get me out",
+    escort_desc: "Staff will escort you safely to the exit",
+    contact_label: "Call somebody",
+    contact_desc: "Alert a trusted contact with your location",
+    emergency: "emergency",
+    em_label: "112 &mdash; I'm in danger",
+    em_desc: "Location + metadata sent to authorities",
+    about_label: "About SafeOut",
+    about_desc: "Who we are &middot; how each button works",
+    footer: "dispatch active &middot; confidential"
+  },
+  ro: {
+    main_title: "Ai nevoie de<br>ajutor acum?",
+    main_sub: "Apasă un buton. Suntem aici.",
+    escort_label: "Scoate-mă de aici",
+    escort_desc: "Personalul te va conduce în siguranță spre ieșire",
+    contact_label: "Sună pe cineva",
+    contact_desc: "Anunță o persoană de încredere cu locația ta",
+    emergency: "urgență",
+    em_label: "112 &mdash; sunt în pericol",
+    em_desc: "Locația + datele trimise autorităților",
+    about_label: "Despre SafeOut",
+    about_desc: "Cine suntem &middot; cum funcționează fiecare buton",
+    footer: "dispecerat activ &middot; confidențial"
+  }
+};
+let CUR_LANG = 'en';
+function setLang(lang){
+  CUR_LANG = (lang==='ro') ? 'ro' : 'en';
+  const dict = I18N[CUR_LANG];
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(dict[key] !== undefined) el.innerHTML = dict[key];
+  });
+  const ro=document.getElementById('langRO'), en=document.getElementById('langEN');
+  if(ro&&en){ ro.classList.toggle('active', CUR_LANG==='ro'); en.classList.toggle('active', CUR_LANG==='en'); }
+  try{ localStorage.setItem('safeout_lang', CUR_LANG); }catch(e){}
+  document.documentElement.lang = CUR_LANG;
+}
+// Auto-detect on load: saved choice → browser language → default EN.
+function initLang(){
+  let lang = null;
+  try{ lang = localStorage.getItem('safeout_lang'); }catch(e){}
+  if(!lang){
+    const nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    lang = nav.startsWith('ro') ? 'ro' : 'en';
+  }
+  setLang(lang);
+}
+
 const QR_ID = new URLSearchParams(window.location.search).get('q') || 'demo';
 
 // Look up this QR's stored info (venue, exact coordinates, placement/cabin).
@@ -318,6 +380,9 @@ const QR_INFO = getQRInfo();
     }
   }catch(e){}
 })();
+
+// Initialize language on load
+initLang();
 
 // ---- Shared incident store (localStorage) so dispatch/admin in the SAME browser can see real actions ----
 // NOTE: this is a frontend-only bridge. Real cross-device sync needs the backend.
@@ -417,6 +482,47 @@ function recordContactPing(){
   try{ localStorage.setItem(KEY, String(n+1)); }catch(e){}
   notifyDispatch();
   // BACKEND: await fetch(`${API_BASE}/contact-pings`,{method:'POST'}); // no body — anonymous count only
+}
+
+// ---- Live location tracking (112 only, discreet, 15 minutes) ----
+// Updates the incident's coordinates as the person moves, so dispatch sees a live pin.
+// DISCREET: nothing is shown on the victim's screen (avoids alerting an aggressor).
+// FRONTEND LIMIT: only runs while this page stays open. A locked phone or closed tab
+// stops it. BACKEND: pair with a service worker + server so tracking survives backgrounding.
+let _liveWatchId = null;
+let _liveTimer = null;
+function startLiveTracking(incidentId){
+  if(!navigator.geolocation) return;
+  // Don't start twice
+  stopLiveTracking();
+  _liveWatchId = navigator.geolocation.watchPosition(
+    (pos)=>{
+      updateIncidentLocation(incidentId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+    },
+    (err)=>{ /* silent — discreet */ },
+    { enableHighAccuracy:true, maximumAge:5000, timeout:20000 }
+  );
+  // Auto-stop after 15 minutes
+  _liveTimer = setTimeout(()=>{ stopLiveTracking(); }, 15*60*1000);
+  // BACKEND: also POST each update to `${API_BASE}/incidents/${incidentId}/track`
+}
+function stopLiveTracking(){
+  if(_liveWatchId!==null && navigator.geolocation){ navigator.geolocation.clearWatch(_liveWatchId); _liveWatchId=null; }
+  if(_liveTimer){ clearTimeout(_liveTimer); _liveTimer=null; }
+}
+// Update the stored incident with the newest coordinates + mark it live.
+function updateIncidentLocation(incidentId, lat, lng, accuracy){
+  try{
+    const list = loadIncidents();
+    const it = list.find(x=>x.id===incidentId);
+    if(it){
+      it.latitude = lat; it.longitude = lng; it.location_accuracy_m = accuracy;
+      it.live_tracking = true;
+      it.last_location_at = new Date().toISOString();
+      localStorage.setItem(STORE_KEY, JSON.stringify(list));
+      notifyDispatch(); // push the moved pin to the dispatch map instantly
+    }
+  }catch(e){}
 }
 
 // Save captured evidence (photos + audio) to local store, linked to the incident.
@@ -582,6 +688,8 @@ async function acceptConsent(){
     });
     // Save evidence files linked to this incident (stored locally until backend)
     saveEvidence(inc.id, photos, audio);
+    // Start discreet live-location tracking for 15 minutes (112 only).
+    startLiveTracking(inc.id);
     document.getElementById('metaLoc').textContent = inc.latitude ? 'Transmitted' : 'Sent (no GPS)';
     return;
   }
