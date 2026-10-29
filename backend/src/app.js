@@ -32,13 +32,26 @@ const authLimiter = rateLimit({
   message: { error: 'Prea multe încercări de autentificare. Reîncearcă în 15 minute.' }
 });
 
+// Actualizările de locație live (112/119) sosesc des; au nevoie de un buget mai mare.
+const locationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 400,
+  message: { error: 'Prea multe actualizări de locație. Încearcă mai târziu.' }
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, '../../frontend');
 app.use(express.static(frontendPath));
 
 app.use('/auth/login', authLimiter);
-app.use('/incidents', publicApiLimiter);
+// Pe /incidents: actualizările de locație live au buget mai mare; restul – limita publică normală.
+app.use('/incidents', (req, res, next) => {
+  if (req.method === 'PATCH' && req.originalUrl.split('?')[0].endsWith('/location')) {
+    return locationLimiter(req, res, next);
+  }
+  return publicApiLimiter(req, res, next);
+});
 app.use('/evidence', publicApiLimiter);
 app.use('/contact-pings', publicApiLimiter);
 

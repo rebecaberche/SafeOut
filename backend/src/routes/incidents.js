@@ -33,6 +33,33 @@ router.post('/', asyncHandler(async (req, res) => {
   res.status(201).json(result.rows[0]);
 }));
 
+// Public — victima trimite poziția live cât ține pagina deschisă (112 / 119).
+// Securizat prin update_token primit la crearea incidentului; RLS cere potrivirea orașului.
+router.patch('/:id/location', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { latitude, longitude, location_accuracy_m, update_token, city } = req.body;
+
+  if (latitude == null || longitude == null || !update_token || !city) {
+    throw new AppError(400, 'Date lipsă', 'latitude, longitude, update_token și city sunt obligatorii');
+  }
+
+  const result = await queryAsDispatcher(
+    { city, role: '' },
+    `UPDATE incidents
+       SET latitude = $1, longitude = $2, location_accuracy_m = $3,
+           location_method = 'gps', location_updated_at = now()
+     WHERE id = $4 AND update_token = $5
+     RETURNING id`,
+    [latitude, longitude, location_accuracy_m ?? null, id, update_token]
+  );
+
+  if (result.rowCount === 0) {
+    throw new AppError(404, 'Incident inexistent', 'Incident inexistent sau token invalid');
+  }
+
+  res.status(204).send();
+}));
+
 router.get('/', authenticate, asyncHandler(async (req, res) => {
   const result = await queryAsDispatcher(
     req.dispatcher,

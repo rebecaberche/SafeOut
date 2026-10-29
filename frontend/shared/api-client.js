@@ -86,6 +86,7 @@ export const api = {
 
   // public (used by the PWA in the next step)
   createIncident: (body) => request('POST', ROUTES.incidents, { body, auth: false }),
+  updateLocation: (incidentId, body) => request('PATCH', `${ROUTES.incidents}/${id(incidentId)}/location`, { body, auth: false }),
   getQr: (code) => request('GET', `${ROUTES.qr}/${id(code)}`, { auth: false }),
 
   register: (body) => request('POST', '/auth/register', { body }),

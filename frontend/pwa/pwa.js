@@ -354,18 +354,62 @@ async function confirmAct() {
 
   showScreen('screen-success');
 
-  let stype = 'escort', vmsg = null, withEvidence = false;
-  if (type === '112') { stype = 'emergency'; vmsg = '112'; withEvidence = true; }
-  else if (type === '119') { stype = 'emergency'; vmsg = '119 (Linia Copilului)'; }
+  let stype = 'escort', vmsg = null, withEvidence = false, live = false;
+  if (type === '112') { stype = 'emergency'; vmsg = '112'; withEvidence = true; live = true; }
+  else if (type === '119') { stype = 'emergency'; vmsg = '119 (Linia Copilului)'; live = true; }
 
-  const res = await recordIncident(stype, vmsg ? { victim_message: vmsg } : {});
+  const extra = {};
+  if (vmsg) extra.victim_message = vmsg;
+  if (live) extra.live_tracking = true;
+
+  const res = await recordIncident(stype, extra);
   const incidentId = res ? res.id : null;
+
+  // Live location: keep sending the victim's position to dispatch while the page stays open.
+  if (live && res && res.id && res.update_token) {
+    startLiveTracking(res.id, res.update_token, res.city);
+  }
 
   if (withEvidence && incidentId) {
     Promise.all([captureBothPhotos(), captureAudio(5)])
       .then(([photos, audio]) => uploadEvidence(incidentId, photos, audio))
       .catch(err => console.warn('Could not collect media evidence:', err));
   }
+}
+
+// ---- 6b. Live location tracking (112 / 119) ----
+// Sends the victim's position to the server as it changes, so dispatch can follow
+// the moving dot even if the victim can't say where they are. Works only while the
+// page stays open (browser limitation); auto-stops after 30 minutes.
+let liveWatchId = null, liveStopTimer = null, liveLastSent = 0;
+
+function startLiveTracking(incidentId, token, city) {
+  stopLiveTracking();
+  if (!navigator.geolocation) return;
+  liveLastSent = 0;
+  liveWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const now = Date.now();
+      if (now - liveLastSent < 8000) return;   // throttle: at most one update / 8s
+      liveLastSent = now;
+      api.updateLocation(incidentId, {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        location_accuracy_m: pos.coords.accuracy,
+        update_token: token,
+        city: city
+      }).catch(() => {});
+    },
+    () => {},
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+  );
+  liveStopTimer = setTimeout(stopLiveTracking, 30 * 60 * 1000);
+}
+
+function stopLiveTracking() {
+  if (liveWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatchId);
+  liveWatchId = null;
+  if (liveStopTimer) { clearTimeout(liveStopTimer); liveStopTimer = null; }
 }
 
 // ---- 7. Contact sheet ("Call somebody" / "Anunță pe cineva") ----
