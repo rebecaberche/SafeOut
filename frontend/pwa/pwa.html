@@ -164,6 +164,17 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .contact-item{display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:background .12s;-webkit-tap-highlight-color:transparent}
 .contact-item:hover{background:rgba(255,255,255,.03)}
 .contact-name{font-size:14px;font-weight:500;color:var(--text);display:block}
+.sheet-body{padding:16px 20px 4px}
+.contact-input{width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;color:var(--text);font-family:inherit;font-size:16px;margin-bottom:10px;-webkit-appearance:none}
+.contact-input::placeholder{color:var(--text3)}
+.contact-input:focus{outline:none;border-color:var(--teal-border)}
+.contact-pick{width:100%;background:none;border:1px dashed rgba(255,255,255,.14);border-radius:12px;padding:11px;color:var(--teal);font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:12px;-webkit-tap-highlight-color:transparent}
+.contact-send-row{display:flex;gap:10px}
+.contact-send{flex:1;border:none;border-radius:12px;padding:15px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.contact-send.wa{background:#25d366;color:#04231a}
+.contact-send.sms{background:var(--teal);color:#04231a}
+.contact-send:active{opacity:.85}
+.contact-note{font-size:11px;color:var(--text3);line-height:1.5;text-align:center;margin-top:12px}
 
 /* ---- escort / safe places ---- */
 #escortMap{width:100%;height:250px;flex-shrink:0;background:var(--bg3);z-index:1}
@@ -349,8 +360,16 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
   <div class="sheet-overlay" id="sheetOverlay">
     <div class="sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-title" data-i18n="sheet_title">Choose a contact to alert</div>
-      <div class="contact-list" id="contactList"></div>
+      <div class="sheet-title" data-i18n="sheet_title">Alert someone with your live location</div>
+      <div class="sheet-body">
+        <input id="contactNumber" class="contact-input" type="tel" inputmode="tel" autocomplete="tel" placeholder="+40 7xx xxx xxx">
+        <div id="contactPickWrap"></div>
+        <div class="contact-send-row">
+          <button class="contact-send wa" onclick="sendToContact('whatsapp')">WhatsApp</button>
+          <button class="contact-send sms" onclick="sendToContact('sms')">SMS</button>
+        </div>
+        <div class="contact-note" data-i18n="contact_note">A live map link is sent. Keep this page open so your location keeps updating.</div>
+      </div>
     </div>
   </div>
 

@@ -60,8 +60,10 @@ const I18N = {
     disguise_sub: "We're working on some improvements.<br>Please check back soon.",
     disguise_back: "&larr; go back",
     // contacts sheet
-    sheet_title: "Choose a contact to alert",
-    contacts_open: "Open your contacts",
+    sheet_title: "Alert someone with your live location",
+    contact_msg: "I don't feel safe. Follow my live location:",
+    contact_note: "A live map link is sent. Keep this page open so your location keeps updating.",
+    contacts_open: "Pick from contacts",
     contacts_unsupported: "Your device can't pick contacts from the browser. On Android Chrome this works; on iOS it isn't available yet.",
     sms_body: "I need you to call me NOW. I'm somewhere I don't feel safe."
   },
@@ -113,8 +115,10 @@ const I18N = {
     disguise_title: "Site în mentenanță",
     disguise_sub: "Lucrăm la câteva îmbunătățiri.<br>Revino în curând.",
     disguise_back: "&larr; înapoi",
-    sheet_title: "Alege un contact de anunțat",
-    contacts_open: "Deschide agenda de contacte",
+    sheet_title: "Anunță pe cineva cu locația ta live",
+    contact_msg: "Nu mă simt în siguranță. Urmărește-mi locația live:",
+    contact_note: "Se trimite un link cu harta live. Ține pagina deschisă ca locația să se actualizeze.",
+    contacts_open: "Alege din agendă",
     contacts_unsupported: "Dispozitivul tău nu poate selecta contacte din browser. Pe Android Chrome funcționează; pe iOS nu este încă disponibil.",
     sms_body: "Am nevoie să mă suni ACUM. Sunt într-un loc unde nu mă simt în siguranță."
   },
@@ -166,8 +170,10 @@ const I18N = {
     disguise_title: "Seite in Wartung",
     disguise_sub: "Wir arbeiten an Verbesserungen.<br>Bitte schau bald wieder vorbei.",
     disguise_back: "&larr; zurück",
-    sheet_title: "Kontakt zum Alarmieren wählen",
-    contacts_open: "Kontakte öffnen",
+    sheet_title: "Jemanden mit deinem Live-Standort alarmieren",
+    contact_msg: "Ich fühle mich nicht sicher. Verfolge meinen Live-Standort:",
+    contact_note: "Ein Live-Karten-Link wird gesendet. Lass die Seite offen, damit dein Standort aktuell bleibt.",
+    contacts_open: "Aus Kontakten wählen",
     contacts_unsupported: "Dein Gerät kann keine Kontakte aus dem Browser wählen. Auf Android Chrome funktioniert es; auf iOS noch nicht.",
     sms_body: "Bitte ruf mich JETZT an. Ich bin an einem Ort, an dem ich mich nicht sicher fühle."
   }
@@ -413,55 +419,69 @@ function stopLiveTracking() {
 }
 
 // ---- 7. Contact sheet ("Call somebody" / "Anunță pe cineva") ----
+// Sends a trusted contact a LIVE location link (via WhatsApp or SMS) and keeps
+// the victim's position updating on the server while the page stays open.
 function openSheet() {
   const sheet = document.getElementById('sheetOverlay');
-  if (sheet) { sheet.classList.add('open'); loadContactsIntoSheet(); }
+  if (!sheet) return;
+  const d = I18N[CUR_LANG];
+  const pickWrap = document.getElementById('contactPickWrap');
+  if (pickWrap) {
+    const supported = ('contacts' in navigator && 'ContactsManager' in window);
+    pickWrap.innerHTML = supported
+      ? `<button class="contact-pick" onclick="pickContact()">${d.contacts_open}</button>`
+      : '';
+  }
+  sheet.classList.add('open');
 }
 function closeSheet() {
   const sheet = document.getElementById('sheetOverlay');
   if (sheet) sheet.classList.remove('open');
 }
 
-function loadContactsIntoSheet() {
-  const listEl = document.getElementById('contactList');
-  if (!listEl) return;
-  const d = I18N[CUR_LANG];
-  const supported = ('contacts' in navigator && 'ContactsManager' in window);
-  if (!supported) {
-    listEl.innerHTML = `<div style="padding:22px 20px;text-align:center;color:var(--text2);font-size:12.5px;font-weight:300;line-height:1.6">${d.contacts_unsupported}</div>`;
-    return;
-  }
-  listEl.innerHTML = `<button class="contact-item" onclick="pickContact()" style="justify-content:center;color:var(--teal)">
-      <span class="contact-name" style="color:var(--teal)">${d.contacts_open}</span>
-    </button>`;
+// Android only: fill the number field from the address book.
+async function pickContact() {
+  try {
+    const contacts = await navigator.contacts.select(['tel'], { multiple: false });
+    if (contacts && contacts.length && contacts[0].tel && contacts[0].tel[0]) {
+      const input = document.getElementById('contactNumber');
+      if (input) input.value = contacts[0].tel[0];
+    }
+  } catch (e) { /* cancelled */ }
 }
 
-async function pickContact() {
+// Send the live-location link through WhatsApp or SMS, and start live tracking.
+async function sendToContact(channel) {
   const d = I18N[CUR_LANG];
-  try {
-    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-    if (contacts && contacts.length) {
-      const chosen = contacts[0];
-      const tel = (chosen.tel && chosen.tel[0]) ? chosen.tel[0].replace(/\s+/g, '') : '';
-      closeSheet();
+  const input = document.getElementById('contactNumber');
+  const raw = input ? input.value.trim() : '';
 
-      const loc = await getLocation();
-      api.recordContactPing().catch(() => {});
-
-      let mapsLink = '';
-      if (loc.lat && loc.lng) mapsLink = ' https://maps.google.com/?q=' + loc.lat + ',' + loc.lng;
-      const body = d.sms_body + mapsLink + ' (SafeOut)';
-
-      if (tel) {
-        const sep = /(iPhone|iPad|Macintosh)/.test(navigator.userAgent) ? '&' : '?';
-        const smsHref = 'sms:' + tel + sep + 'body=' + encodeURIComponent(body);
-        setTimeout(() => { window.location.href = smsHref; }, 400);
-      }
-      showScreen('screen-success');
-    }
-  } catch (e) {
-    closeSheet();
+  // Create a "contact" incident that backs the live link, then start tracking.
+  const res = await recordIncident('contact', { live_tracking: true });
+  let link = '';
+  if (res && res.id && res.share_token) {
+    link = window.location.origin + '/track?t=' + encodeURIComponent(res.share_token);
+    if (res.update_token) startLiveTracking(res.id, res.update_token, res.city);
+  } else {
+    // fallback (no backend reachable): a static location link
+    const loc = await getLocation();
+    if (loc.lat && loc.lng) link = 'https://maps.google.com/?q=' + loc.lat + ',' + loc.lng;
   }
+  api.recordContactPing().catch(() => {});
+
+  const body = d.contact_msg + (link ? ' ' + link : '') + ' (SafeOut)';
+  closeSheet();
+
+  if (channel === 'whatsapp') {
+    let wa = raw.replace(/\D/g, '');
+    if (wa.startsWith('0')) wa = '40' + wa.slice(1);   // Romanian local -> international
+    window.location.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(body);
+  } else {
+    const num = raw.replace(/\s+/g, '');
+    const sep = /(iPhone|iPad|Macintosh)/.test(navigator.userAgent) ? '&' : '?';
+    window.location.href = 'sms:' + num + sep + 'body=' + encodeURIComponent(body);
+  }
+  showScreen('screen-success');
 }
 
 // ---- 7b. "Get me out" -> map + nearest safe places ----
@@ -596,6 +616,7 @@ window.confirmAct = confirmAct;
 window.openSheet = openSheet;
 window.closeSheet = closeSheet;
 window.pickContact = pickContact;
+window.sendToContact = sendToContact;
 window.showEscort = showEscort;
 window.openDirections = openDirections;
 window.mapsSearch = mapsSearch;

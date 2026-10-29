@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080810">
+<title>SafeOut · Live location</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080810;--bg2:#0f0f1a;--bg3:#141420;--teal:#4ecfaa;--red:#ff6b6b;
+  --text:rgba(255,255,255,.92);--text2:rgba(255,255,255,.45);--text3:rgba(255,255,255,.2)}
+html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text)}
+body{display:flex;flex-direction:column;height:100vh}
+.bar{padding:14px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 1.8s ease infinite}
+.dot.stale{background:var(--text3);animation:none}
+.dot.resolved{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+.bar-txt{flex:1;min-width:0}
+.bar-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.bar-sub{font-size:11px;color:var(--text2);margin-top:1px}
+#map{flex:1;width:100%;background:var(--bg3)}
+.foot{padding:10px 18px;font-size:10px;color:var(--text3);text-align:center;border-top:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.center-msg{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:var(--text2);font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="dot" id="dot"></div>
+  <div class="bar-txt">
+    <div class="bar-title" id="title">SafeOut</div>
+    <div class="bar-sub" id="sub">Connecting…</div>
+  </div>
+</div>
+<div id="map"></div>
+<div class="foot" id="foot">SafeOut · live location shared with you</div>
+<script>
+(function () {
+  var LANG = (navigator.language || 'en').toLowerCase();
+  var L10N = {
+    en: { title: "Live location", connecting: "Connecting…", updated: "updated", ago: "ago", justnow: "just now",
+      waiting: "Waiting for location… the person must keep the SafeOut page open.",
+      nolink: "Invalid or expired link.", resolved: "This alert was marked resolved.",
+      stale: "No recent update — the page may have been closed.", foot: "SafeOut · live location shared with you" },
+    ro: { title: "Locație live", connecting: "Se conectează…", updated: "actualizat", ago: "în urmă", justnow: "chiar acum",
+      waiting: "Se așteaptă locația… persoana trebuie să țină pagina SafeOut deschisă.",
+      nolink: "Link invalid sau expirat.", resolved: "Această alertă a fost marcată rezolvată.",
+      stale: "Fără actualizări recente — pagina poate fi închisă.", foot: "SafeOut · locație live partajată cu tine" },
+    de: { title: "Live-Standort", connecting: "Verbindung…", updated: "aktualisiert", ago: "", justnow: "gerade eben",
+      waiting: "Warte auf Standort… die Person muss die SafeOut-Seite offen halten.",
+      nolink: "Ungültiger oder abgelaufener Link.", resolved: "Dieser Alarm wurde als gelöst markiert.",
+      stale: "Keine aktuelle Aktualisierung — die Seite wurde evtl. geschlossen.", foot: "SafeOut · geteilter Live-Standort" }
+  };
+  var T = LANG.indexOf('ro') === 0 ? L10N.ro : LANG.indexOf('de') === 0 ? L10N.de : L10N.en;
+
+  document.getElementById('title').textContent = T.title;
+  document.getElementById('sub').textContent = T.connecting;
+  document.getElementById('foot').textContent = T.foot;
+
+  var token = new URLSearchParams(location.search).get('t');
+  var map = null, marker = null, acc = null, centered = false;
+  var $sub = document.getElementById('sub'), $dot = document.getElementById('dot');
+
+  function showMessage(msg) {
+    document.getElementById('map').style.display = 'none';
+    if (!document.querySelector('.center-msg')) {
+      var d = document.createElement('div'); d.className = 'center-msg'; d.textContent = msg;
+      document.body.insertBefore(d, document.getElementById('foot'));
+    }
+  }
+  function ago(iso) {
+    if (!iso) return '';
+    var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 45) return T.justnow;
+    if (s < 3600) return Math.round(s / 60) + ' min ' + T.ago;
+    return Math.floor(s / 3600) + 'h ' + T.ago;
+  }
+  function ensureMap(lat, lng) {
+    if (typeof L === 'undefined') { showMessage('Map could not load.'); return; }
+    if (!map) {
+      map = L.map('map', { zoomControl: true, attributionControl: false }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    }
+  }
+  function draw(lat, lng, accuracy) {
+    ensureMap(lat, lng);
+    if (!map) return;
+    if (!marker) {
+      marker = L.circleMarker([lat, lng], { radius: 9, color: '#4ecfaa', fillColor: '#4ecfaa', fillOpacity: .9, weight: 3 }).addTo(map);
+    } else { marker.setLatLng([lat, lng]); }
+    if (accuracy) {
+      if (!acc) acc = L.circle([lat, lng], { radius: accuracy, color: '#4ecfaa', weight: 1, fillOpacity: .07 }).addTo(map);
+      else { acc.setLatLng([lat, lng]); acc.setRadius(accuracy); }
+    }
+    if (!centered) { map.setView([lat, lng], 16); centered = true; }
+    else { map.panTo([lat, lng]); }
+  }
+
+  async function poll() {
+    if (!token) { $sub.textContent = T.nolink; $dot.className = 'dot stale'; showMessage(T.nolink); return; }
+    try {
+      var r = await fetch('/incidents/track/' + encodeURIComponent(token), { cache: 'no-cache' });
+      if (!r.ok) { $sub.textContent = T.nolink; $dot.className = 'dot stale'; if (r.status === 404) showMessage(T.nolink); return; }
+      var d = await r.json();
+      if (d.status === 'resolved') { $sub.textContent = T.resolved; $dot.className = 'dot resolved'; }
+      if (d.latitude == null || d.longitude == null) {
+        $sub.textContent = T.waiting; $dot.className = 'dot';
+        return;
+      }
+      draw(Number(d.latitude), Number(d.longitude), d.location_accuracy_m ? Number(d.location_accuracy_m) : null);
+      var updatedAgo = ago(d.location_updated_at || d.created_at);
+      var stale = d.location_updated_at && (Date.now() - new Date(d.location_updated_at).getTime() > 60000);
+      $sub.textContent = T.updated + ' ' + updatedAgo + (stale ? ' · ' + T.stale : '');
+      $dot.className = 'dot' + (d.status === 'resolved' ? ' resolved' : stale ? ' stale' : '');
+    } catch (e) {
+      $sub.textContent = T.stale; $dot.className = 'dot stale';
+    }
+  }
+
+  poll();
+  setInterval(poll, 5000);
+})();
+</script>
+</body>
+</html>

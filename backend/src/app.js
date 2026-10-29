@@ -47,7 +47,9 @@ app.use(express.static(frontendPath));
 app.use('/auth/login', authLimiter);
 // Pe /incidents: actualizările de locație live au buget mai mare; restul – limita publică normală.
 app.use('/incidents', (req, res, next) => {
-  if (req.method === 'PATCH' && req.originalUrl.split('?')[0].endsWith('/location')) {
+  const p = req.originalUrl.split('?')[0];
+  // actualizările de locație live și paginile de tracking fac polling des -> buget mai mare
+  if (p.endsWith('/location') || p.includes('/track/')) {
     return locationLimiter(req, res, next);
   }
   return publicApiLimiter(req, res, next);
@@ -66,6 +68,7 @@ app.use('/evidence', evidenceRouter);
 app.use('/contact-pings', contactPingsRouter);
 
 app.get('/pwa', (req, res) => res.sendFile(path.join(frontendPath, '/pwa', 'pwa.html')));
+app.get('/track', (req, res) => res.sendFile(path.join(frontendPath, '/track', 'track.html')));
 app.get('/dispatcher', (req, res) => res.sendFile(path.join(frontendPath, '/dispatcher', 'dispatcher.html')));
 app.get('/poweradmin', (req, res) => res.sendFile(path.join(frontendPath, '/poweradmin', 'poweradmin.html')));
 app.get('/', (req, res) => {

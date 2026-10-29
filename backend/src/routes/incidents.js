@@ -60,6 +60,24 @@ router.patch('/:id/location', asyncHandler(async (req, res) => {
   res.status(204).send();
 }));
 
+// Public — o persoană de încredere deschide linkul live ("Anunță pe cineva").
+// Accesul e controlat de share_token (capabilitatea); întoarce DOAR câmpuri de locație.
+// Contextul super_admin ocolește RLS pe oraș; tokenul e secretul care gestionează accesul.
+router.get('/track/:token', asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const result = await queryAsDispatcher(
+    { city: '', role: 'super_admin' },
+    `SELECT latitude, longitude, location_accuracy_m, location_updated_at,
+            status, situation_type, venue_name, created_at
+       FROM incidents WHERE share_token = $1`,
+    [token]
+  );
+  if (result.rowCount === 0) {
+    throw new AppError(404, 'Link invalid', 'Link invalid sau expirat');
+  }
+  res.json(result.rows[0]);
+}));
+
 router.get('/', authenticate, asyncHandler(async (req, res) => {
   const result = await queryAsDispatcher(
     req.dispatcher,
